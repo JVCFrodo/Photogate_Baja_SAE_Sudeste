@@ -29,6 +29,7 @@ build/
 
 # STM32CubeIDE project settings
 .settings/
+.metadata/
 *.launch
 *.cproject
 *.project
