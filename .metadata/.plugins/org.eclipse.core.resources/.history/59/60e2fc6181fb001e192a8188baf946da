@@ -1,0 +1,89 @@
+
+#include "main.h"
+#include "usbd_cdc_if.h"
+#include "nrf24.h"
+#include "nextion_interface.h"
+
+
+
+extern TIM_HandleTypeDef htim10;
+extern UART_HandleTypeDef huart1;
+
+
+volatile uint8_t Generic_Tim_Count_200ms = 0x00;
+volatile uint8_t msg_len = 0x00;
+char msg[80];
+
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management of Timer interrupts
+{
+
+
+
+	if (htim->Instance == TIM10){		//Happens each 1 second.  Separated from Stopwatch timer.
+
+
+		Generic_Tim_Count_200ms++;
+		if(Generic_Tim_Count_200ms >= 5){
+
+			Generic_Tim_Count_200ms = 0x00;
+
+			//Regular_Nextion_Updates();
+			RF_Transmit_Alive_MSG();
+
+		}
+
+}
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was imported from "rf_driver.c". Put here for organization purposes
+
+	BEACONMESSAGE_TypeDef Message;
+	BEACONMODE_TypeDef Modo;
+	uint8_t Irq_Flags = 0xFF;
+	uint8_t pipe = 0xFF;
+	Nextion_Pages_TypeDef Nextion_Page = 0xff;
+
+
+
+	switch(GPIO_Pin){
+
+
+	case NRF_IRQ_Pin:
+
+		Irq_Flags = nRF24_GetIRQFlags();
+		Nextion_Page = Get_Nextion_Pages();
+
+		if((Irq_Flags & nRF24_FLAG_RX_DR) == nRF24_FLAG_RX_DR){
+
+		}
+
+
+		nRF24_ClearIRQFlags();
+		nRF24_FlushRX();
+
+}
+}
+
+void Regular_Nextion_Updates(){
+
+
+	Nextion_Pages_TypeDef Nextion_Page = 0xff;
+
+	Nextion_Page = Get_Nextion_Pages();
+
+	Check_Apply_OPmode_Change();
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
