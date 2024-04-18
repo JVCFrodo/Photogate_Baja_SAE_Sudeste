@@ -1,0 +1,55 @@
+#.gitignore file for excluding certain files to be uploaded to git.
+# This .gitignore file was based on a prebuilt template, so some file formats that may not apply were kept in the file.
+
+# Compiled source
+*.o
+*.out
+*.elf
+*.hex
+*.bin
+*.a
+
+# Precompiled headers
+*.gch
+*.pch
+
+# Dependency directories
+STM32CubeIDE/
+Middlewares/
+Drivers/STM32*.c
+Drivers/STM32*.h
+USB_DEVICE/
+USB_HOST/
+Baja_Photogate_SD_Card_Dump/
+
+# Build directories
+Debug/
+Release/
+build/
+
+# STM32CubeIDE project settings
+.settings/
+.metadata/
+*.launch
+*.cproject
+*.project
+*.scpy
+*.ld
+
+# Logs and backups
+*.log
+*.log.*
+*.core
+*.swp
+*~
+*.bak
+
+# User-specific files
+.vscode/
+.idea/
+.DS_Store
+
+# Environment-specific files
+.env
+.env.*
+*.env.local

@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<ScratchFile FileVersion="3.0">
+  <FileVersion>3.0</FileVersion>
+  <Workspace>
+    <WorkspaceType>Single-project</WorkspaceType>
+    <WorkspacePath>C:\Users\caj1sbc\git\2024_Baja_Photogate_2_4G\Baja_Photogate_Sensor_Side\</WorkspacePath>
+    <underRoot>true</underRoot>
+    <TrustZone>0</TrustZone>
+    <HAL_Driver>C:\Users\caj1sbc\STM32Cube\Repository\STM32Cube_FW_F4_V1.27.1</HAL_Driver>
+    <CMSIS>Drivers/CMSIS</CMSIS>
+    <Toolchain>STM32CubeIDE</Toolchain>
+    <IocFile>Baja_Photogate_Sensor_Side.ioc</IocFile>
+    <Project>
+              
+      <ProjectName>Baja_Photogate_Sensor_Side</ProjectName>
+           
+      <ProjectNature>C</ProjectNature>
+       
+      <Secure/>
+            
+      <filestoremove>
+                
+        <file>
+                      
+          <name>USB_DEVICE/App/usb_device.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>..\Src\custom.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>USB_DEVICE/Target/usbd_conf.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>USB_DEVICE/App/usbd_desc.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>USB_DEVICE/App/usbd_cdc_if.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c</name>
+                  
+        </file>
+        <file>
+                      
+          <name>Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c</name>
+                  
+        </file>
+                           
+      </filestoremove>
+      <sourceEntriesToRemove>
+            
+        <sourceEntry/>
+      </sourceEntriesToRemove>
+          
+      <configs>
+        <config>
+              
+          <name>Baja_Photogate_Sensor_Side</name>
+          	 
+          <mainSourceRepo>Core</mainSourceRepo>
+             
+          <sourceStructure>Advanced</sourceStructure>
+           
+          <device>STM32F401CCUx</device>
+          		     
+          <cpucore>Arm Cortex-M4</cpucore>
+                  
+          <fpu>SP</fpu>
+                
+          <memories>
+                       
+            <memory access="xrw" name="RAM" size="65536" start="0x20000000"/>
+                    
+            <memory access="rx" name="FLASH" size="262144" start="0x8000000"/>
+                
+          </memories>
+              
+          <startup>C:\Users\caj1sbc\STM32Cube\Repository\STM32Cube_FW_F4_V1.27.1\Drivers\CMSIS\Device\ST\STM32F4xx\Source\Templates\gcc\startup_stm32f401xc.s</startup>
+                
+          <LinkSettings>
+            	
+            <LinkAdditionalLibs>	</LinkAdditionalLibs>
+          </LinkSettings>
+              
+          <heapSize>0x600</heapSize>
+              
+          <stackSize>0x400</stackSize>
+                  
+          <cpuclock>64</cpuclock>
+                  
+          <board>custom</board>
+              
+          <debugprobe/>
+              
+          <optimization/>
+              
+          <Aincludes>
+                    
+            <include/>
+                    
+          </Aincludes>
+              
+          <Adefines>        </Adefines>
+                
+          <Cdefines>
+                    
+            <define>USE_HAL_DRIVER</define>
+                    
+            <define>STM32F401xC</define>
+                    
+          </Cdefines>
+              
+          <Ldefines>        </Ldefines>
+                  
+          <Cincludes>
+            		        
+            <include>Core\Inc</include>
+                    
+            <include>Drivers\STM32F4xx_HAL_Driver\Inc</include>
+                    
+            <include>Drivers\STM32F4xx_HAL_Driver\Inc\Legacy</include>
+                    
+            <include>Drivers\CMSIS\Device\ST\STM32F4xx\Include</include>
+                    
+            <include>Drivers\CMSIS\Include</include>
+                    
+          </Cincludes>
+              
+          <definestoremove>
+                    
+            <Adefines>            </Adefines>
+                    
+            <Cdefines>
+                                  
+              <define>USE_FULL_LL_DRIVER</define>
+                                  
+              <define>USE_FULL_ASSERT=1U</define>
+                          
+            </Cdefines>
+                     
+            <Ldefines>            </Ldefines>
+                     
+          </definestoremove>
+              
+          <inctoremove>
+                    
+            <Aincludes>
+                          
+              <include/>
+                          
+            </Aincludes>
+                    
+            <Cincludes>
+                          
+              <include>Middlewares\ST\STM32_USB_Device_Library\Core\Inc</include>
+                          
+              <include>Middlewares\ST\STM32_USB_Device_Library\Class\CDC\Inc</include>
+                          
+              <include>USB_DEVICE\App</include>
+                          
+              <include>USB_DEVICE\Target</include>
+                          
+            </Cincludes>
+                    
+          </inctoremove>
+                 
+        </config>
+                
+      </configs>
+       
+      <copyAsReference>false</copyAsReference>
+               
+      <sourceEntries>
+                    
+        <sourceEntry>
+                      
+          <name>Core</name>
+                      
+        </sourceEntry>
+                            
+        <sourceEntry>
+                      
+          <name>Drivers</name>
+                  
+        </sourceEntry>
+                	          
+      </sourceEntries>
+      <Groups>    </Groups>
+       
+    </Project>
+  </Workspace>
+</ScratchFile>
