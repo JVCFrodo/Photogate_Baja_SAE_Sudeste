@@ -1,0 +1,121 @@
+
+#include "main.h"
+#include "definitions.h"
+#include "shared_definitions.h"
+#include "usbd_cdc_if.h"
+#include "nrf24.h"
+#include "nextion_interface.h"
+
+
+
+extern volatile BEACONMODE_TypeDef Device_Current_Mode;
+extern volatile BEACONMODE_TypeDef Device_Previous_Mode;
+extern TIM_HandleTypeDef htim10;
+extern TIM_HandleTypeDef htim9;
+extern UART_HandleTypeDef huart1;
+
+extern volatile uint8_t WDTf_Beacon1, WDTf_Beacon2, WDTf_Beacon3, WDTf_Beacon4;
+
+volatile uint16_t StopWatch_Counter_ms = 0x00, Meastime_us = 0x00;
+volatile uint8_t StopWatch_Counter_secs = 0x00, Stopwatch_Counter_Mins = 0x00;
+volatile uint8_t Meastime_secs = 0x00, Meastime_Mins = 0x00;
+volatile uint8_t Generic_Tim_Count_200ms = 0x00;
+
+volatile uint8_t Beacon_Blocker = 0x00; 	//This variable follows the expected beacon order, and only allows recordings to be done whe this given order is fullfilled.
+
+uint8_t regread = 0x00;
+volatile uint8_t msg_len = 0x00;
+char msg[80];
+
+
+extern Rx_Buffer[20];
+
+
+extern void RF_Transmit_Config_MSG(BEACONMODE_TypeDef reqmode);
+extern void Beacon_Sync_Calcs(BEACONMESSAGE_TypeDef* Message);
+
+
+
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management of Timer interrupts
+{
+
+
+
+	if (htim->Instance == TIM10){		//Happens each 1 second.  Separated from Stopwatch timer.
+
+
+		Generic_Tim_Count_200ms++;
+		if(Generic_Tim_Count_200ms >= 5){
+
+			Generic_Tim_Count_200ms = 0x00;
+
+			Regular_Nextion_Updates();
+
+			//if(Device_Current_Mode == RACE_MODE) msg_len = sprintf(msg,"Master Mode is: RACE \n");
+			//else if(Device_Current_Mode == STANDBY_MODE ) msg_len = sprintf(msg,"Master Mode is: STANBY \n");
+		 	//CDC_Transmit_FS(msg, msg_len);
+
+
+
+
+		}
+	}
+
+}
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was imported from "rf_driver.c". Put here for organization purposes
+
+	BEACONMESSAGE_TypeDef Message;
+	BEACONMODE_TypeDef Modo;
+	uint8_t Irq_Flags = 0xFF;
+	uint8_t pipe = 0xFF;
+	Nextion_Pages_TypeDef Nextion_Page = 0xff;
+
+
+
+	switch(GPIO_Pin){
+
+
+	case NRF_IRQ_Pin:
+
+		Irq_Flags = nRF24_GetIRQFlags();
+		Nextion_Page = Get_Nextion_Pages();
+
+		if((Irq_Flags & nRF24_FLAG_RX_DR) == nRF24_FLAG_RX_DR){
+
+		}
+
+
+		nRF24_ClearIRQFlags();
+		nRF24_FlushRX();
+
+}
+}
+
+void Regular_Nextion_Updates(){
+
+
+	Nextion_Pages_TypeDef Nextion_Page = 0xff;
+
+	Nextion_Page = Get_Nextion_Pages();
+
+	Check_Apply_OPmode_Change();
+	WDT_Calcs_Updates(Nextion_Page);
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
