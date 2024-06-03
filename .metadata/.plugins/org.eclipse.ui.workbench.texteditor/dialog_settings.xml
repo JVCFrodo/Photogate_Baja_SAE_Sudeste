@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="Battery"/>
+		<item key="selection" value="DATA_TYPES"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="NEXTION_INTERFACE"/>
+			<item value="GLOBALS"/>
+			<item value="*4B"/>
+			<item value="4B"/>
 			<item value="Signal"/>
 			<item value="Plus"/>
 			<item value="nRF24_REG_CONFIG"/>
@@ -16,6 +20,7 @@
 			<item value="Device_Current_Mode = STANDBY_MODE"/>
 		</list>
 		<list key="replacehistory">
+			<item value="DATA_TYPES"/>
 			<item value="Battery"/>
 			<item value=""/>
 		</list>

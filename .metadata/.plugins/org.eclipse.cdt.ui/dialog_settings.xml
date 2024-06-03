@@ -11,6 +11,12 @@
 		<item key="caseSensitive" value="false"/>
 		<item key="searchFlags" value="227191"/>
 		<list key="previousPatterns">
+			<item value="*DisableIRQ"/>
+			<item value="EnableIRQ"/>
+			<item value="DisableIRQ"/>
+			<item value="dp2"/>
+			<item value="Calibrate"/>
+			<item value="*hsdInitBusWide"/>
 			<item value="HAL_GetTick"/>
 			<item value="stdint"/>
 			<item value="Beacon_Blocker"/>
