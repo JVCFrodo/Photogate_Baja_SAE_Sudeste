@@ -21,8 +21,10 @@ uint8_t nRF24_payload[32];
 nRF24_RXResult pipe;
 
 void NRF_24_Master_Init();
-void NRF_24_Datalog_Init();
+void NRF_24_Log_Init();
 void RF_Transmit_Config_MSG(BEACONMODE_TypeDef reqmode);
+
+
 
 static const uint8_t nRF24_ADDR0[] = Sensor_1_Pipe;
 static const uint8_t nRF24_ADDR1[] = Sensor_2_Pipe;
@@ -35,15 +37,10 @@ static const uint8_t nRF24_ADDR3[] = Sensor_4_Pipe;
 
 // Timeout counter (depends on the CPU speed)
 // Used for not stuck waiting for IRQ
-#define nRF24_WAIT_TIMEOUT         (uint32_t)0x00FFFFF
+#define nRF24_WAIT_TIMEOUT         (uint32_t)0x00FFF
 
 // Result of packet transmission
-typedef enum {
-	nRF24_TX_ERROR  = (uint8_t)0x00, // Unknown error
-	nRF24_TX_SUCCESS,                // Packet has been transmitted successfully
-	nRF24_TX_TIMEOUT,                // It was timeout during packet transmit
-	nRF24_TX_MAXRT                   // Transmit failed with maximum auto retransmit count
-} nRF24_TXResult;
+
 
 
 
@@ -157,61 +154,11 @@ void NRF_24_Master_Init(){
 	    nRF24_SetPowerMode(nRF24_PWR_UP);
 
 	    // Put the transceiver to the RX mode
-	    nRF24_CE_L();
+	    nRF24_CE_H();
 
 
 
 }
-
-void NRF_24_Datalog_Init(){
-
-
-		//   - RF channel: 115 (2515MHz)
-		//   - data rate: 250kbps (minimum possible, to increase reception reliability)
-		//   - CRC scheme: 2 byte
-
-
-		// Disable ShockBurst for all RX pipes
-		//nRF24_DisableAA(0xFF);
-
-		// Set RF channel
-	    nRF24_SetRFChannel(100);
-
-	    // Set data rate
-	    nRF24_SetDataRate(nRF24_DR_250kbps);
-
-	    // Set CRC scheme
-	    nRF24_SetCRCScheme(nRF24_CRC_2byte);
-
-	    // Set address width in bytes, its common for all pipes (RX and TX)
-	    nRF24_SetAddrWidth(5);
-
-	    static const uint8_t nRF24_ADDR_Log[] = Datalog_Rx_Pipe;
-
-	    nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR_Log);
-
-
-	    nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
-
-	    // Set TX power (maximum)
-	    nRF24_SetTXPower(nRF24_TXPWR_0dBm);
-
-	    // Set operational mode (PTX == transmitter)
-	    nRF24_SetOperationalMode(nRF24_MODE_TX);
-
-	    // Clear any pending IRQ flags
-	    nRF24_ClearIRQFlags();
-
-	    nRF24_FlushRX();
-	    nRF24_FlushTX();
-
-	    // Wake the transceiver
-	    nRF24_SetPowerMode(nRF24_PWR_UP);
-
-
-
-}
-
 
 void RF_Transmit_Config_MSG(BEACONMODE_TypeDef reqmode){
 
@@ -255,6 +202,60 @@ void RF_Transmit_Config_MSG(BEACONMODE_TypeDef reqmode){
  	nRF24_FlushRX();
  	nRF24_FlushTX();
 	nRF24_CE_H();
+}
 
+void NRF_24_Log_Init(){
+
+	//   - RF channel: 115 (2515MHz)
+			//   - data rate: 250kbps (minimum possible, to increase reception reliability)
+			//   - CRC scheme: 2 byte
+
+	    	//static const uint8_t nRF24_ADDR_Log[] = {0xDA, 0x7A, 0x10, 0x66, 0xee};
+			static const uint8_t nRF24_ADDR_Log[] = {0xee, 0x66, 0x10, 0x7A, 0xDA};
+
+			//static const uint8_t nRF_ADDR_Log_RX[] = {0xab, 0xbc, 0xab, 0xbc, 0xcd}; // O SOFTWWARE DO CHINES TA INVERTIDO
+	    	static const uint8_t nRF_ADDR_Log_RX[] = {0xcd, 0xbc, 0xab, 0xbc, 0xab};
+
+		    nRF24_SetPowerMode(nRF24_PWR_DOWN);
+
+	    	// Set RF channel
+		    nRF24_SetRFChannel(124);
+
+		    // Set data rate
+		    nRF24_SetDataRate(nRF24_DR_250kbps);
+
+		    // Set CRC scheme
+		    nRF24_SetCRCScheme(nRF24_CRC_2byte);
+
+		    // Set address width in bytes, its common for all pipes (RX and TX)
+		    nRF24_SetAddrWidth(5);
+
+
+		    nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR_Log);
+		    nRF24_SetAddr(nRF24_PIPE1, nRF_ADDR_Log_RX);
+
+
+		    nRF24_SetRXPipe(nRF24_PIPE1, nRF24_AA_ON, 32);
+
+
+		    nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
+
+		    // Set TX power (maximum)
+		    nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+
+		    nRF24_SetOperationalMode(nRF24_MODE_RX);
+
+		    // Clear any pending IRQ flags
+		    nRF24_ClearIRQFlags();
+
+		    // Wake the transceiver
+		    nRF24_SetPowerMode(nRF24_PWR_UP);
+		    nRF24_CE_H();
 
 }
+
+
+
+
+
+

@@ -44,6 +44,10 @@ build/
 *~
 *.bak
 
+# NRF24 debuggiong files
+*.captures/
+*.complex16s
+
 # User-specific files
 .vscode/
 .idea/

@@ -46,6 +46,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+DMA_HandleTypeDef hdma_adc1;
+
 SPI_HandleTypeDef hspi1;
 
 TIM_HandleTypeDef htim9;
@@ -58,10 +61,13 @@ DMA_HandleTypeDef hdma_usart1_rx;
 
 volatile BEACONMODE_TypeDef Device_Current_Mode =  STANDBY_MODE;
 volatile BEACONMODE_TypeDef Device_Previous_Mode =  STANDBY_MODE;
-uint8_t Rx_Buffer[20];
-
+volatile uint8_t Rx_Buffer[20];
+char SD_Read_Buffer[200];
+uint16_t Analog_read, RWbytecounter, TotalSize1, FreeSpace1, FreClusters1;
 FATFS fs;
+FATFS *Dummy1;
 FIL fil;
+FRESULT SD_Operation_Result = FR_DISK_ERR;
 
 
 /* USER CODE END PV */
@@ -74,6 +80,7 @@ static void MX_TIM9_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 
 
@@ -124,32 +131,44 @@ int main(void)
   MX_TIM10_Init();
   MX_USB_DEVICE_Init();
   MX_USART1_UART_Init();
+  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_Delay(1500);
 
-  HAL_UART_Receive_DMA(&huart1, Rx_Buffer, 5);
-
-  Nextion_Init();
 
   nRF24_Init();
   while(nRF24_Check() != 1) nRF24_Init();
   NRF_24_Master_Init();
 
+  Initialize_Batt_Avg_Calc();
+
+  HAL_Delay(500);
+
+
+  //------------------[ Mount The SD Card ]--------------------
+  SD_Operation_Result = f_mount(&fs, "", 1);
+  f_getfree("", &RWbytecounter, &Dummy1);
+  TotalSize1 = (uint32_t)((Dummy1->n_fatent - 2) * Dummy1->csize * 0.5);
+  FreeSpace1 = (uint32_t)(FreClusters1 * Dummy1->csize * 0.5);
+
+  SD_Operation_Result = f_open(&fil, "ResultadosAVF.txt", FA_READ | FA_OPEN_APPEND);
+  if(SD_Operation_Result != FR_OK){
+
+	  SD_Operation_Result = f_open(&fil, "ResultadosAVF.txt", FA_WRITE | FA_READ | FA_CREATE_ALWAYS);
+  }
+
+
+   f_close(&fil);
+
+  HAL_UART_Receive_DMA(&huart1, Rx_Buffer, 5);
+
+  HAL_ADC_Start_DMA(&hadc1, &Analog_read, 1);
+
+  Nextion_Init();
+  Nextion_Update_SD_Status(SD_Operation_Result);
+
   HAL_TIM_Base_Start_IT(&htim10);
   HAL_NVIC_EnableIRQ(EXTI2_IRQn);
-
-
-
-
-/*
-f_mount(&fs, "", 0);
-f_open(&fil, "APD Results.txt", FA_OPEN_ALWAYS | FA_WRITE | FA_READ);
-//f_lseek(&fil, fil.fsize);
-f_lseek(&fil, 0);
-f_puts("Numero da Equipe, Passada, Tempo 30m, Velocidade,\n", &fil);
-f_close(&fil);
-*/
 
 
   /* USER CODE END 2 */
@@ -161,19 +180,7 @@ f_close(&fil);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  /*
-	  uint8_t Message[32];
-	  uint8_t Size = 0x00;
-	  uint8_t Text[] = "Hello NRF24";
-	  uint8_t Return = 0xff;
 
-	  Message[0] = sizeof(Text);
-	  memcpy(Message + 1, Text, sizeof(Text));
-
-	  Return = nRF24_TransmitPacket(&Message, 32);
-
-	  HAL_Delay(1000);
-*/
   }
   /* USER CODE END 3 */
 }
@@ -221,6 +228,58 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV2;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = DISABLE;
+  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_1;
+  sConfig.Rank = 1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -374,6 +433,9 @@ static void MX_DMA_Init(void)
   __HAL_RCC_DMA2_CLK_ENABLE();
 
   /* DMA interrupt init */
+  /* DMA2_Stream0_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
   /* DMA2_Stream2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
@@ -434,14 +496,117 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(NRF_IRQ_GPIO_Port, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI2_IRQn, 14, 0);
-  //HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 1, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
+void SD_Card_Test(void)
+{
+  FATFS FatFs;
+  FIL Fil;
+  FRESULT FR_Status;
+  FATFS *FS_Ptr;
+  UINT RWC, WWC; // Read/Write Word Counter
+  DWORD FreeClusters;
+  uint32_t TotalSize, FreeSpace;
+  char RW_Buffer[200];
+  char TxBuffer[40];
+  do
+  {
+    //------------------[ Mount The SD Card ]--------------------
+    FR_Status = f_mount(&FatFs, "", 1);
+    if (FR_Status != FR_OK)
+    {
+       sprintf(TxBuffer, "Error! While Mounting SD Card, Error Code: (%i)\r\n", FR_Status);
+      break;
+    }
+    sprintf(TxBuffer, "SD Card Mounted Successfully! \r\n\n");
+    //------------------[ Get & Print The SD Card Size & Free Space ]--------------------
+    f_getfree("", &FreeClusters, &FS_Ptr);
+    TotalSize = (uint32_t)((FS_Ptr->n_fatent - 2) * FS_Ptr->csize * 0.5);
+    FreeSpace = (uint32_t)(FreeClusters * FS_Ptr->csize * 0.5);
+    sprintf(TxBuffer, "Total SD Card Size: %lu Bytes\r\n", TotalSize);
+    sprintf(TxBuffer, "Free SD Card Space: %lu Bytes\r\n\n", FreeSpace);
+    //------------------[ Open A Text File For Write & Write Data ]--------------------
+    //Open the file
+    FR_Status = f_open(&Fil, "TextFileWrite.txt", FA_WRITE | FA_READ | FA_CREATE_ALWAYS);
+    if(FR_Status != FR_OK)
+    {
+      sprintf(TxBuffer, "Error! While Creating/Opening A New Text File, Error Code: (%i)\r\n", FR_Status);
+      break;
+    }
+    sprintf(TxBuffer, "Text File Created & Opened! Writing Data To The Text File..\r\n\n");
+    // (1) Write Data To The Text File [ Using f_puts() Function ]
+    f_puts("Hello! From STM32 To SD Card Over SPI, Using f_puts()\n", &Fil);
+    // (2) Write Data To The Text File [ Using f_write() Function ]
+    strcpy(RW_Buffer, "Hello! From STM32 To SD Card Over SPI, Using f_write()\r\n");
+    f_write(&Fil, RW_Buffer, strlen(RW_Buffer), &WWC);
+    // Close The File
+    f_close(&Fil);
+    //------------------[ Open A Text File For Read & Read Its Data ]--------------------
+    // Open The File
+    FR_Status = f_open(&Fil, "TextFileWrite.txt", FA_READ);
+    if(FR_Status != FR_OK)
+    {
+      sprintf(TxBuffer, "Error! While Opening (TextFileWrite.txt) File For Read.. \r\n");
+      break;
+    }
+    // (1) Read The Text File's Data [ Using f_gets() Function ]
+    f_gets(RW_Buffer, sizeof(RW_Buffer), &Fil);
+    sprintf(TxBuffer, "Data Read From (TextFileWrite.txt) Using f_gets():%s", RW_Buffer);
+    // (2) Read The Text File's Data [ Using f_read() Function ]
+    f_read(&Fil, RW_Buffer, f_size(&Fil), &RWC);
+    sprintf(TxBuffer, "Data Read From (TextFileWrite.txt) Using f_read():%s", RW_Buffer);
+
+    // Close The File
+    f_close(&Fil);
+    sprintf(TxBuffer, "File Closed! \r\n\n");
+
+    //------------------[ Open An Existing Text File, Update Its Content, Read It Back ]--------------------
+    // (1) Open The Existing File For Write (Update)
+    FR_Status = f_open(&Fil, "TextFileWrite.txt", FA_OPEN_EXISTING | FA_WRITE);
+    FR_Status = f_lseek(&Fil, f_size(&Fil)); // Move The File Pointer To The EOF (End-Of-File)
+    if(FR_Status != FR_OK)
+    {
+      sprintf(TxBuffer, "Error! While Opening (TextFileWrite.txt) File For Update.. \r\n");
+      break;
+    }
+    // (2) Write New Line of Text Data To The File
+    FR_Status = f_puts("This New Line Was Added During Update!\r\n", &Fil);
+    f_close(&Fil);
+    memset(RW_Buffer,'\0',sizeof(RW_Buffer)); // Clear The Buffer
+    // (3) Read The Contents of The Text File After The Update
+    FR_Status = f_open(&Fil, "TextFileWrite.txt", FA_READ); // Open The File For Read
+    f_read(&Fil, RW_Buffer, f_size(&Fil), &RWC);
+    sprintf(TxBuffer, "Data Read From (TextFileWrite.txt) After Update:%s", RW_Buffer);
+    f_close(&Fil);
+    //------------------[ Delete The Text File ]--------------------
+    // Delete The File
+    /*
+    FR_Status = f_unlink(TextFileWrite.txt);
+    if (FR_Status != FR_OK){
+        sprintf(TxBuffer, "Error! While Deleting The (TextFileWrite.txt) File.. \r\n");
+        UART_Print(TxBuffer);
+    }
+    */
+  } while(0);
+  //------------------[ Test Complete! Unmount The SD Card ]--------------------
+  FR_Status = f_mount(NULL, "", 0);
+  if (FR_Status != FR_OK)
+  {
+      sprintf(TxBuffer, "Error! While Un-mounting SD Card, Error Code: (%i)\r\n", FR_Status);
+
+  } else{
+      sprintf(TxBuffer, "SD Card Un-mounted Successfully! \r\n");
+
+  }
+}
+
 
 /* USER CODE END 4 */
 

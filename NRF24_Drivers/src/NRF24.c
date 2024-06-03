@@ -17,6 +17,19 @@ static uint8_t nRF24_ReadReg(uint8_t reg) {
 	return value;
 }
 
+uint16_t nRF24_Reg_Dump(){
+
+	uint8_t i = 0x00;
+	uint16_t Checksum = 0x00;
+
+	for(i = 0x00; i < 0x1D; i++)
+	{
+		Checksum += nRF24_ReadReg(i);
+	}
+return Checksum;
+}
+
+
 // Write a new value to register
 // input:
 //   reg - number of register to write
@@ -151,6 +164,8 @@ void nRF24_SetOperationalMode(uint8_t mode) {
 	reg &= ~nRF24_CONFIG_PRIM_RX;
 	reg |= (mode & nRF24_CONFIG_PRIM_RX);
 	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
+	if(mode == nRF24_MODE_TX) nRF24_CE_L();
+	else if (mode == nRF24_MODE_RX) nRF24_CE_H();
 }
 
 // Set transceiver DynamicPayloadLength feature for all the pipes

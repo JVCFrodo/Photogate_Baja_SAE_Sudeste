@@ -5,6 +5,7 @@
 // Created by ilia.motornyi on 13-Dec-18.
 //
 // Buffer to store a payload of maximum width
+// Testing commit to git
 
 
 #define HEX_CHARS      "0123456789ABCDEF"

@@ -18,70 +18,7 @@
        
       <Secure/>
             
-      <filestoremove>
-                
-        <file>
-                      
-          <name>USB_DEVICE/App/usb_device.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>..\Src\custom.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>USB_DEVICE/Target/usbd_conf.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>USB_DEVICE/App/usbd_desc.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>USB_DEVICE/App/usbd_cdc_if.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c</name>
-                  
-        </file>
-        <file>
-                      
-          <name>Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c</name>
-                  
-        </file>
-                           
-      </filestoremove>
+      <filestoremove>                           </filestoremove>
       <sourceEntriesToRemove>
             
         <sourceEntry/>
@@ -185,17 +122,7 @@
                           
             </Aincludes>
                     
-            <Cincludes>
-                          
-              <include>Middlewares\ST\STM32_USB_Device_Library\Core\Inc</include>
-                          
-              <include>Middlewares\ST\STM32_USB_Device_Library\Class\CDC\Inc</include>
-                          
-              <include>USB_DEVICE\App</include>
-                          
-              <include>USB_DEVICE\Target</include>
-                          
-            </Cincludes>
+            <Cincludes>            </Cincludes>
                     
           </inctoremove>
                  

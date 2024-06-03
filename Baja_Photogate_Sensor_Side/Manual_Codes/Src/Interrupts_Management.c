@@ -76,6 +76,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management o
 	nRF24_FlushTX();
 	nRF24_ClearIRQFlags();
 
+	Calc_Batt_Perc();
+
 
 	if(Device_Current_Mode == STANDBY_MODE) HAL_GPIO_WritePin(Led_Azul_GPIO_Port, Led_Azul_Pin, TRUE);
 	else if (Device_Current_Mode == RACE_MODE) HAL_GPIO_WritePin(Led_Azul_GPIO_Port, Led_Azul_Pin, FALSE);

@@ -198,7 +198,7 @@ void RF_Transmit_Alive_MSG(){
 	Payload.Time_MilisL = Elapsed_Time & 0xFF;
 	Payload.Msg_Counter_H = (Message_Counter >> 8) & 0xFF;
 	Payload.Msg_Counter_L = Message_Counter & 0xFF;
-	Payload.Battery_Percentage = 0x6E;
+	Payload.Battery_Percentage = Calc_Batt_Perc();
 
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
 	tx_res = nRF24_TransmitPacket(&Payload, Payload_Len);
@@ -219,7 +219,7 @@ void RF_Transmit_Trigger_MSG(){
 	Payload.Time_MilisL = Frozen_Timer & 0xFF;
 	Payload.Msg_Counter_H = (Message_Counter >> 8) & 0xFF;
 	Payload.Msg_Counter_L = Message_Counter & 0xFF;
-	Payload.Battery_Percentage = 0x6E;
+	Payload.Battery_Percentage = Calc_Batt_Perc();
 
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
 	tx_res = nRF24_TransmitPacket(&Payload, Payload_Len);

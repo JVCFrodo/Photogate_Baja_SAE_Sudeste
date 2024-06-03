@@ -3,6 +3,7 @@
 #include "main.h"
 #include "shared_definitions.h"
 #include <stdio.h>
+#include "data_types.h"
 
 
 
@@ -12,27 +13,33 @@ extern volatile uint8_t Rx_Buffer[20];
 uint8_t Mem_Sensor_Status = 0x00;
 
 BEACONMODE_TypeDef Return_Mode = 0xFF;
-
 Nextion_Pages_TypeDef Get_Nextion_Pages();
 
+char Send_msg[50];
+uint8_t Msg_len = 0x00;
 
-void Wait_Nextion_Resp_us(uint16_t tim_to_wait_us)
+uint8_t Current_Page = 0x00, Prev_Page = 0xff;
+
+
+void Wait_Nextion_Resp_us(uint32_t tim_to_wait_us)
 {
 	uint32_t i = 0x00;
 	uint32_t ticks = 0x00;
 
 		ticks  = 64 * tim_to_wait_us;
-		for(i = 0x00; i <= ticks; i++){}	//empirically waits for DMA transfer to finish. Attempts by IRQ were unsuccessfull
+		for(i = 0x00; i <= ticks; i++){
+
+		}	//empirically waits for DMA transfer to finish. Attempts by IRQ were unsuccessfull.
 
 }
 
 
 void Nextion_Init(){
 
-	char Send_msg[20];
-	uint8_t Recv_msg[20];
-	uint8_t Msg_len = 0x00;
 
+	uint8_t Recv_msg[20];
+
+	Device_Current_Mode =  STANDBY_MODE;
 
 	Msg_len = sprintf(Send_msg, "get dp%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 
@@ -53,8 +60,7 @@ void Nextion_Init(){
 
 void Update_Sensor_Status_Stdby(uint8_t sensor, uint8_t Sync, uint8_t Beam, uint8_t Battery){
 
-	char Send_msg[40];
-	uint8_t Msg_len = 0x00;
+
 
 	switch(sensor){
 
@@ -72,7 +78,7 @@ void Update_Sensor_Status_Stdby(uint8_t sensor, uint8_t Sync, uint8_t Beam, uint
 
 
 
-		Msg_len = sprintf(Send_msg, "t0.txt=%c%d%c%c%c%c",'"', Battery,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+		Msg_len = sprintf(Send_msg, "t0.txt=%c%d%c%c%c%c%c",'"', Battery,'%','"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 		HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 
 
@@ -138,8 +144,6 @@ void Update_Sensor_Status_Stdby(uint8_t sensor, uint8_t Sync, uint8_t Beam, uint
 
 void Update_Sensor_Status_Run(uint8_t Sensor, uint8_t Sync){
 
-	char Send_msg[20];
-	uint8_t Msg_len = 0x00;
 
 	switch(Sensor){
 
@@ -221,9 +225,8 @@ void Update_Sensor_Status_Run(uint8_t Sensor, uint8_t Sync){
 
 uint8_t Get_Car_Num(){
 
-	char Send_msg[35];
 	uint8_t Recv_msg[35];
-	uint8_t Msg_len = 0x00;
+
 
 	uint8_t CarNum_H = 0xFF;
 	uint8_t CarNum_L = 0xFF;
@@ -253,9 +256,8 @@ uint8_t Get_Car_Num(){
 
 void Display_30m_time(uint16_t milis, uint8_t secs){
 
-	char Send_msg[20];
 	uint8_t Time_String[20];
-	uint8_t Msg_len = 0x00;
+
 
 
 	Msg_len = sprintf(Time_String, "0.%d'%d s%c%c%c", secs, milis, Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
@@ -268,8 +270,7 @@ void Display_30m_time(uint16_t milis, uint8_t secs){
 
 void Display_Speed(uint16_t speed){
 
-	char Send_msg[30];
-	uint8_t Msg_len = 0x00;
+
 	float Speed_f = 0.0;
 
 	Speed_f = speed/1000;
@@ -282,8 +283,6 @@ void Display_Speed(uint16_t speed){
 
 BEACONMODE_TypeDef Get_Device_Mode(){
 
-	char Send_msg[35];
-	uint8_t Msg_len = 0x00;
 	uint8_t Device_Mode = 0xff;
 	uint8_t Return_Mode = 0xff;
 
@@ -311,8 +310,7 @@ return Return_Mode;
 
 Nextion_Pages_TypeDef Get_Nextion_Pages(){
 
-	char Send_msg[35];
-	uint8_t Msg_len = 0x00;
+
 	uint8_t Device_Page = 0xff;
 	uint8_t i = 0x00;
 
@@ -321,13 +319,248 @@ Nextion_Pages_TypeDef Get_Nextion_Pages(){
 
 	Msg_len = sprintf(Send_msg, "sendme%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
-	Wait_Nextion_Resp_us(50);
+	Wait_Nextion_Resp_us(1000);
 
 	for(i = 0x00; i < sizeof(Rx_Buffer); i++){
 		if(Rx_Buffer[i] == 0x66) Device_Page = Rx_Buffer[i+1];
 	}
 
 	return Device_Page;
+
+}
+
+void Nextion_Update_Battery(uint8_t Bat_Status_perc, uint16_t Batt_Voltage_mV){
+
+
+	Nextion_Pages_TypeDef Current_Page = RACE_PAGE;
+
+
+
+	Current_Page = Get_Nextion_Pages();
+	if(Current_Page == STANDBY_PAGE){
+		Msg_len = sprintf(Send_msg, "t4.txt=%c%d%c%c%c%c%c",'"', Bat_Status_perc,'%','"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+		HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+		Msg_len = sprintf(Send_msg, "t5.txt=%cBatV=%dmV%c%c%c%c",'"', Batt_Voltage_mV,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+		HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+	}
+
+
+}
+
+Mem_Erase_Status Nextion_Get_Mem_Erase_Status(){
+
+	uint8_t Rx_Val = 0xff;
+
+	HAL_UART_DMAStop(&huart1);
+	HAL_UART_Receive_DMA(&huart1, Rx_Buffer, 20);
+
+
+	Msg_len = sprintf(Send_msg, "get Loc_Req.val%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+	Wait_Nextion_Resp_us(50);
+	if(Rx_Buffer[0] == 0x71)
+		{
+		Rx_Val =  Rx_Buffer[1];
+		}
+	else Rx_Val = 0;
+
+	return Rx_Val;
+
+
+}
+
+void Nextion_Update_SD_Status(uint8_t Status){
+
+	if(Status == 0x00) Msg_len = sprintf(Send_msg, "p9.pic=13%c%c%c",Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	else Msg_len = sprintf(Send_msg, "p9.pic=12%c%c%c",Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+}
+
+
+void Nextion_Retunr_From_Mem_Erase(){
+
+	Wait_Nextion_Resp_us(300000);
+	Msg_len = sprintf(Send_msg, "t0.pco=16296%c%c%c",Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+	Msg_len = sprintf(Send_msg, "t0.txt=%cMemoria apagada!!%c%c%c%c",'"','"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+	Msg_len = sprintf(Send_msg, "p1.pic=4%c%c%c",Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+	Wait_Nextion_Resp_us(300000);
+	Msg_len = sprintf(Send_msg, "dp=2%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+
+}
+
+
+uint8_t Nextion_Get_Current_Display_Data_page(){
+
+	uint8_t Rx_Val = 0xff;
+
+	HAL_UART_DMAStop(&huart1);
+	HAL_UART_Receive_DMA(&huart1, Rx_Buffer, 20);
+
+
+	Msg_len = sprintf(Send_msg, "get Pag_Num.val%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+	Wait_Nextion_Resp_us(50);
+	if(Rx_Buffer[0] == 0x71)
+		{
+		Rx_Val =  Rx_Buffer[1];
+		}
+	else Rx_Val = 0;
+
+	return Rx_Val;
+
+
+}
+
+
+void Nextion_Display_Mem_Data(Data_FS Data){
+
+	uint8_t Num_Pages = 0x00, Last_Page_Lines = 0x00,offset = 0x00, Rows_To_Print = 0x00;
+	uint16_t i = 0x00 ;
+	uint16_t Data_Index_per_Page = 0x00;
+
+	Current_Page = Nextion_Get_Current_Display_Data_page();
+
+	if(Data.Size != 0xff){
+
+	Num_Pages = (Data.Size/8);
+	Last_Page_Lines = (Data.Size%8);
+	if(Last_Page_Lines != 0x00) Num_Pages++;
+
+
+
+
+		Msg_len = sprintf(Send_msg, "t32.txt=%c%d/%d%c%c%c%c",'"',Current_Page,Num_Pages,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+		HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+		Msg_len = sprintf(Send_msg, "Max_Pag_Num.val=%d%c%c%c",Num_Pages, Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+		HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+		offset = (Current_Page-1)*8;
+		if(Current_Page != Num_Pages) Rows_To_Print = 0x08;
+		else if(Current_Page == Num_Pages) Rows_To_Print = Last_Page_Lines;
+
+
+		for(i = 0; i < Rows_To_Print; i++){
+
+
+			Msg_len = sprintf(Send_msg, "t%d.txt=%c%.3s%c%c%c%c",(i*4),'"',Data.Lines[i+offset].Passada,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+			HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+			Msg_len = sprintf(Send_msg, "t%d.txt=%c%.3s%c%c%c%c",(i*4) + 1,'"',Data.Lines[i+offset].Carro,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+			HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+			Msg_len = sprintf(Send_msg, "t%d.txt=%c%.6s%c%c%c%c",(i*4) + 2,'"',Data.Lines[i+offset].Aceleracao,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+			HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+			Msg_len = sprintf(Send_msg, "t%d.txt=%c%.2s%c%c%c%c",(i*4) + 3,'"',Data.Lines[i+offset].Velocidade,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+			HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+		}
+		if(Rows_To_Print < 8){
+
+			for(i = Rows_To_Print; i < 8; i++){
+
+				Msg_len = sprintf(Send_msg, "t%d.txt=%c%.3s%c%c%c%c",(i*4),'"'," -- ",'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+				HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+				Msg_len = sprintf(Send_msg, "t%d.txt=%c%.3s%c%c%c%c",(i*4) + 1,'"', " -- " ,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+				HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+				Msg_len = sprintf(Send_msg, "t%d.txt=%c%.6s%c%c%c%c",(i*4) + 2,'"'," -- ",'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+				HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+				Msg_len = sprintf(Send_msg, "t%d.txt=%c%.4s%c%c%c%c",(i*4) + 3,'"'," -- ",'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+				HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+				}
+		}
+
+	}
+
+	else{
+
+			for(i = 0x00; i < 1; i++){
+
+				Msg_len = sprintf(Send_msg, "t%d.txt=%c%.5s%c%c%c%c",(i*4),'"',"Falha",'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+				HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+				Msg_len = sprintf(Send_msg, "t%d.txt=%c%.5s%c%c%c%c",(i*4) + 1,'"', " no  " ,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+				HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+				Msg_len = sprintf(Send_msg, "t%d.txt=%c%.6s%c%c%c%c",(i*4) + 2,'"',"cartao",'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+				HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+				Msg_len = sprintf(Send_msg, "t%d.txt=%c%.4s%c%c%c%c",(i*4) + 3,'"'," SD ",'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+				HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+
+	}
+
+	}
+
+}
+
+uint8_t Nextion_Get_Cancel_OTA_Req(){
+
+	uint8_t Rx_Val = 0xff;
+
+	HAL_UART_DMAStop(&huart1);
+	HAL_UART_Receive_DMA(&huart1, Rx_Buffer, 20);
+
+	Msg_len = sprintf(Send_msg, "get Return_Req.val%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+	Wait_Nextion_Resp_us(100);
+	if(Rx_Buffer[0] == 0x71)
+		{
+		Rx_Val =  Rx_Buffer[1];
+		}
+	else Rx_Val = 0;
+
+	return Rx_Val;
+}
+
+uint8_t Nextion_Get_Start_OTA_Req(){
+
+	uint8_t Rx_Val = 0xff;
+
+	HAL_UART_DMAStop(&huart1);
+	HAL_UART_Receive_DMA(&huart1, Rx_Buffer, 20);
+
+	Msg_len = sprintf(Send_msg, "get Start_Req.val%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+	Wait_Nextion_Resp_us(100);
+	if(Rx_Buffer[0] == 0x71)
+		{
+		Rx_Val =  Rx_Buffer[1];
+		}
+	else Rx_Val = 0;
+
+	return Rx_Val;
+}
+
+void Nextion_Update_OTA_Sync(uint8_t Status){
+
+	if(Status == 0x01) Msg_len = sprintf(Send_msg, "p3.pic=4%c%c%c",Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	else Msg_len = sprintf(Send_msg, "p3.pic=5%c%c%c",Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+}
+
+void Nextion_Update_OTA_Progress(uint8_t perc){
+
+	if(perc >= 100) perc = 100;
+
+	Msg_len = sprintf(Send_msg, "j0.val=%d%c%c%c",perc,Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+
+	if(perc == 100){
+		Msg_len = sprintf(Send_msg, "p1.pic=4%c%c%c",Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+		HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
+	}
 
 }
 

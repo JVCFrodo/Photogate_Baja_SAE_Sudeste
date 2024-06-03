@@ -60,6 +60,7 @@ void EXTI2_IRQHandler(void);
 void TIM1_BRK_TIM9_IRQHandler(void);
 void TIM1_UP_TIM10_IRQHandler(void);
 void USART1_IRQHandler(void);
+void DMA2_Stream0_IRQHandler(void);
 void DMA2_Stream2_IRQHandler(void);
 void OTG_FS_IRQHandler(void);
 void FPU_IRQHandler(void);

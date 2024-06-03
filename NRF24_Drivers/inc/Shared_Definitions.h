@@ -27,6 +27,7 @@ typedef enum{
 
 	STANDBY_MODE = 0b0101,
 	RACE_MODE = 0b0110,
+	OTA_REPORT_MODE = 0b1100,
 } BEACONMODE_TypeDef;
 
 
