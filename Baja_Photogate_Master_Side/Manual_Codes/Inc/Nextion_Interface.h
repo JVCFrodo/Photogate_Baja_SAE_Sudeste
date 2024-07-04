@@ -16,10 +16,15 @@ void Update_Sensor_Status_Run(uint8_t Sensor, uint8_t Sync);
 void Display_30m_time(uint16_t milis, uint8_t secs);
 void Wait_Nextion_Resp_us(uint32_t tim_to_wait_us);
 void Nextion_Update_Battery(uint8_t Bat_Status_perc, uint16_t Batt_Voltage_mV);
+void Clear_UART_RxTx();
+void Nextion_Debug_Stopwatch_Send();
+void Nextion_SD_Write_Confirmation_Page();
 uint8_t Nextion_Get_Start_Download_Request();
 
+uint8_t Get_Nextion_Request_Page();
+
 BEACONMODE_TypeDef Get_Device_Mode();
-uint8_t Get_Car_Num();
+uint8_t Nextion_Get_Car_Num();
 
 typedef enum{
 

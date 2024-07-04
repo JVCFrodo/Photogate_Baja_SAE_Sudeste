@@ -180,21 +180,21 @@ void RF_Transmit_Config_MSG(BEACONMODE_TypeDef reqmode){
 
 	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR0);
  	tx_res |= nRF24_TransmitPacket(&Payload, Payload_Len);
- 	msg_len = sprintf( msg,"Tx res for Sensor 1: %x \n", tx_res);
- 	CDC_Transmit_FS(msg, msg_len);
+ 	//msg_len = sprintf( msg,"Tx res for Sensor 1: %x \n", tx_res);
+ 	//CDC_Transmit_FS(msg, msg_len);
 
 	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR1);
- 	//tx_res |= nRF24_TransmitPacket(&Payload, Payload_Len);
+ 	tx_res |= nRF24_TransmitPacket(&Payload, Payload_Len);
  	//msg_len = sprintf( msg,"Tx res for Sensor 2: %x \n", tx_res);
  	//CDC_Transmit_FS(msg, msg_len);
 
 	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR2);
- 	//tx_res |= nRF24_TransmitPacket(&Payload, Payload_Len);
+ 	tx_res |= nRF24_TransmitPacket(&Payload, Payload_Len);
  	//msg_len = sprintf( msg,"Tx res for Sensor 3: %x \n", tx_res);
  	//CDC_Transmit_FS(msg, msg_len);
 
 	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR3);
- 	//tx_res |= nRF24_TransmitPacket(&Payload, Payload_Len);
+ 	tx_res |= nRF24_TransmitPacket(&Payload, Payload_Len);
  	//msg_len = sprintf( msg,"Tx res for Sensor 4: %x \n", tx_res);
  	//CDC_Transmit_FS(msg, msg_len);
 

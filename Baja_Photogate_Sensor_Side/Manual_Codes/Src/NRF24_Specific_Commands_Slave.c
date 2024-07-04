@@ -22,10 +22,11 @@ void RF_Transmit_Alive_MSG();
 void RF_Transmit_Trigger_MSG();
 void RF_Read_Settings_Msg(BEACONMODE_TypeDef Received_Mode);
 
-extern volatile uint16_t Message_Counter, Frozen_Timer;
-extern volatile uint8_t StopWatch_Counter_1ms, StopWatch_Counter_100ms;
+extern volatile uint16_t Message_Counter, Frozen_Timer_ms;
+extern volatile uint16_t StopWatch_Counter_1ms, StopWatch_Counter_100ms;
 extern volatile SENSORSTATS_TypeDef Sensor_Status_Act, Sensor_Status_Prev;
 extern BEACONMODE_TypeDef Device_Current_Mode;
+extern uint8_t Interruption_Flag_WDT;
 
 
 // Helpers for transmit mode demo
@@ -35,12 +36,14 @@ extern BEACONMODE_TypeDef Device_Current_Mode;
 #define nRF24_WAIT_TIMEOUT         (uint32_t)0x000FFFF
 
 // Result of packet transmission
+/*
 typedef enum {
 	nRF24_TX_ERROR  = (uint8_t)0x00, // Unknown error
 	nRF24_TX_SUCCESS,                // Packet has been transmitted successfully
 	nRF24_TX_TIMEOUT,                // It was timeout during packet transmit
 	nRF24_TX_MAXRT                   // Transmit failed with maximum auto retransmit count
 } nRF24_TXResult;
+*/
 
 nRF24_TXResult tx_res;
 
@@ -186,7 +189,8 @@ void RF_Transmit_Alive_MSG(){
 
 	uint16_t Elapsed_Time = 0x00;
 
-	Elapsed_Time = (StopWatch_Counter_100ms * 10) + StopWatch_Counter_1ms;
+	StopWatch_Counter_1ms = 0x00;
+	Elapsed_Time = StopWatch_Counter_1ms;
 
 	Message_Counter++;
 
@@ -206,6 +210,11 @@ void RF_Transmit_Alive_MSG(){
 	nRF24_CE_H();
 
 
+
+
+
+
+
 }
 
 void RF_Transmit_Trigger_MSG(){
@@ -215,8 +224,8 @@ void RF_Transmit_Trigger_MSG(){
 	Payload.Beacon_Id = BeaconID;
 	Payload.Beacon_Mode = RACE_MODE;
 	Payload.Sensor_status = INTERRUPTED;
-	Payload.Time_MilisH = (Frozen_Timer >> 8) & 0xFF;
-	Payload.Time_MilisL = Frozen_Timer & 0xFF;
+	Payload.Time_MilisH = (Frozen_Timer_ms >> 8) & 0xFF;
+	Payload.Time_MilisL = Frozen_Timer_ms & 0xFF;
 	Payload.Msg_Counter_H = (Message_Counter >> 8) & 0xFF;
 	Payload.Msg_Counter_L = Message_Counter & 0xFF;
 	Payload.Battery_Percentage = Calc_Batt_Perc();
@@ -238,6 +247,7 @@ void RF_Read_Settings_Msg(BEACONMODE_TypeDef Received_Mode)
 			case STANDBY_MODE:
 				Device_Current_Mode = STANDBY_MODE;
 				Message_Counter = 0x00;
+				Interruption_Flag_WDT = 0x00;
 				break;
 
 			case RACE_MODE:

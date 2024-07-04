@@ -3,7 +3,7 @@
 
 
 
-#define BeaconID BEACON1
+#define BeaconID BEACON2
 
 
 

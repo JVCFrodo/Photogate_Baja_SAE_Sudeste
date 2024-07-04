@@ -50,9 +50,9 @@ typedef enum{
 
 typedef struct{
 
-	uint8_t Beacon_Id ;
+	BEACONID_TypeDef Beacon_Id ;
 	BEACONMODE_TypeDef Beacon_Mode;
-	uint8_t Sensor_status;
+	SENSORSTATS_TypeDef Sensor_status;
 	uint8_t Msg_Counter_H;
 	uint8_t Msg_Counter_L;
 	uint8_t Time_MilisH;

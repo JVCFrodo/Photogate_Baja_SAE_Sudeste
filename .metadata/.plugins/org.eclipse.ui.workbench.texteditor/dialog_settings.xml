@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="DATA_TYPES"/>
+		<item key="selection" value="TIM11"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="TIM9"/>
+			<item value="htim9"/>
+			<item value="Beacon_Sync_Calcs"/>
+			<item value="Meas_Time_s"/>
+			<item value="Meas_Time_ms"/>
+			<item value="B2"/>
+			<item value="B1"/>
+			<item value="Meastime_us"/>
 			<item value="NEXTION_INTERFACE"/>
 			<item value="GLOBALS"/>
 			<item value="*4B"/>
@@ -15,11 +23,15 @@
 			<item value="Signal"/>
 			<item value="Plus"/>
 			<item value="nRF24_REG_CONFIG"/>
-			<item value="RX_DR"/>
-			<item value="TX Address"/>
-			<item value="Device_Current_Mode = STANDBY_MODE"/>
 		</list>
 		<list key="replacehistory">
+			<item value="TIM11"/>
+			<item value="htim11"/>
+			<item value="Meastime_secs"/>
+			<item value="Meastime_ms"/>
+			<item value="B4"/>
+			<item value="B3"/>
+			<item value="B2"/>
 			<item value="DATA_TYPES"/>
 			<item value="Battery"/>
 			<item value=""/>

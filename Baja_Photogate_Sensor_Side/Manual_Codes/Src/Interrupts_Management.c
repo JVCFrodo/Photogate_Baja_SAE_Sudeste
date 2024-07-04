@@ -6,9 +6,9 @@
 #include "nrf24.h"
 #include "math.h"
 
-volatile uint8_t StopWatch_Counter_1ms = 0x00, StopWatch_Counter_100ms = 0x00;
-volatile uint8_t Scheduler_Counter_200ms = 0x00;
-volatile uint16_t Message_Counter = 0x00, Frozen_Timer = 0x00;
+volatile uint16_t StopWatch_Counter_1ms = 0x00,StopWatch_Counter_NoZero_1ms = 0x00, StopWatch_Counter_1s = 0x00;
+volatile uint16_t Scheduler_Counter_200ms = 0x00;
+volatile uint16_t Message_Counter = 0x00, Frozen_Timer_s, Frozen_Timer_ms = 0x00;
 
 volatile uint32_t Pulse_Cnt_38Khz = 0x00;
 volatile SENSORSTATS_TypeDef Sensor_Status_Act = NON_INTERRUPTED, Sensor_Status_Prev = NON_INTERRUPTED;
@@ -24,6 +24,7 @@ extern TIM_HandleTypeDef htim2;
 
 uint8_t msg[50];
 
+uint8_t Pinstate = 0x00;
 
 extern void RF_Transmit_Alive_MSG();
 extern void RF_Transmit_Trigger_MSG();
@@ -36,36 +37,39 @@ void Check_Log_Analog_Values();
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management of Timer interrupts
 {
 
-	if (htim->Instance == TIM9)															// period  = 500 us - Used as stopwatch timebase
+	if (htim->Instance == TIM11)															// period  = 500 us - Used as stopwatch timebase
 	{
 
 		StopWatch_Counter_1ms++;
+		StopWatch_Counter_NoZero_1ms++;
 
-		if(StopWatch_Counter_1ms >= 2)												// period = 1ms
-			{
-				StopWatch_Counter_100ms++;
-				StopWatch_Counter_1ms = 0x00;
-				Pulse_Cnt_38Khz = TIM2->CNT;
-				TIM2->CNT = 0x00;
-
-				if(Pulse_Cnt_38Khz < 35) {
-
-					Sensor_Status_Act = INTERRUPTED;
-
-					if((Sensor_Status_Act != Sensor_Status_Prev) && (Interruption_Flag_WDT == 0x00) && (Device_Current_Mode == RACE_MODE)){
-						Interruption_Flag_WDT = 0x01;
-						Frozen_Timer = (StopWatch_Counter_100ms * 10) + StopWatch_Counter_1ms;
-						RF_Transmit_Trigger_MSG();
-
-					}
-				}
-				else Sensor_Status_Act = NON_INTERRUPTED;
-
-				Sensor_Status_Prev = Sensor_Status_Act;
-
-
-				if(StopWatch_Counter_100ms >= 100) StopWatch_Counter_100ms = 0x00;
+		Pinstate = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_0);
+		if(Pinstate == TRUE){
+			Sensor_Status_Act = INTERRUPTED;
+			if(Interruption_Flag_WDT == 0x00 & Device_Current_Mode == RACE_MODE){
+				Frozen_Timer_ms = StopWatch_Counter_1ms;
+				RF_Transmit_Trigger_MSG();
+				Interruption_Flag_WDT = 0x01;
 			}
+		}
+		else Sensor_Status_Act = NON_INTERRUPTED;
+
+
+		//if(StopWatch_Counter_1ms >= 2)												// period = 1ms
+			//{
+				//StopWatch_Counter_100ms++;
+				//StopWatch_Counter_1ms = 0x00;
+				//Pulse_Cnt_38Khz = TIM2->CNT;
+				//TIM2->CNT = 0x00;
+				//Sensor_Status_Prev = Sensor_Status_Act;
+			//}
+
+		if(StopWatch_Counter_NoZero_1ms >= 1000){
+			StopWatch_Counter_1s++;
+			StopWatch_Counter_NoZero_1ms = 0x00;
+			if(StopWatch_Counter_1s >= 65535) StopWatch_Counter_1s = 0x00;
+
+		}
 
 	}
 	else if(htim->Instance == TIM10){
@@ -82,21 +86,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management o
 	if(Device_Current_Mode == STANDBY_MODE) HAL_GPIO_WritePin(Led_Azul_GPIO_Port, Led_Azul_Pin, TRUE);
 	else if (Device_Current_Mode == RACE_MODE) HAL_GPIO_WritePin(Led_Azul_GPIO_Port, Led_Azul_Pin, FALSE);
 
-
-
-	if(Scheduler_Counter_200ms >= 5)		// Period = 200ms * 5 = 1 second
+	if(Scheduler_Counter_200ms >= 5)		// Period = 200ms * 5 = 1000 milisseconds
 	{
-
-			//Report_Over_USB();
-
-			/*Routine for disabling duplicate reads from sensor. Set comparison value for the time in
-		    seconds to be waited before re-activating the sensor.*/
-		    if(Interruption_Flag_WDT) Interruption_Tim_Count++;
-			if(Interruption_Tim_Count >= 4)
-			{
-				Interruption_Tim_Count = 0x00;
-				Interruption_Flag_WDT = 0x00;
-			}
 
 			if(Interruption_Flag_WDT == 0x00) RF_Transmit_Alive_MSG();
 			else RF_Transmit_Trigger_MSG();

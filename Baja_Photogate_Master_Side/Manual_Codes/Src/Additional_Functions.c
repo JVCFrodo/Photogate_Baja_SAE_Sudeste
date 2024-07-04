@@ -19,15 +19,16 @@ uint16_t Calc_Batt_Perc(uint8_t mode);
 void Initialize_Batt_Avg_Calc();
 void Erase_SD_Card();
 void OTA_Log_Routine(Data_FS Data);
+void Store_Data_SD_30m(uint16_t Time_ms);
 
 extern ADC_HandleTypeDef hadc1;
-extern TIM_HandleTypeDef htim9;
+extern TIM_HandleTypeDef htim11;
 extern TIM_HandleTypeDef htim10;
 extern UART_HandleTypeDef huart1;
 extern volatile uint8_t Rx_Buffer[20];
 
 extern volatile char Payload_Log[32];
-extern volatile uint8_t RX_Payload_Flag, Dummy_Payload_Len;
+extern volatile uint8_t RX_Payload_Flag, Dummy_Payload_Len, Finished_30m_Flag;
 
 
 extern uint16_t Analog_read;
@@ -43,25 +44,26 @@ uint16_t Calc_Batt_Perc(uint8_t mode){
 
 static uint16_t V_Bat_mv_table[] = {2210, 2610, 2820, 2940, 3040, 3120, 3190, 3270, 3320, 3370, 3410, 3430, 3440, 3460, 3480, 3500, 3520, 3530, 3550, 3570, 3590, 3600, 3610, 3630, 3650, 3670, 3690, 3700, 3730, 3750, 3770, 3780, 3800, 3820, 3840, 3850, 3870, 3900, 3920, 3940, 3960, 3990, 4010, 4010, 4019, 4030, 4040, 4050, 4070, 4100};
 
-static float Conv_Factor_mv = 0.82051282, Res_Div_Ratio = 3.707547169;
-uint16_t Perdas_Constantes_Fios_mv = 60;
+static float Conv_Factor_mv = 0.8083028, Res_Div_Ratio = 2;
+uint8_t Filtering_Window_Size = 20;
 uint32_t Avg_Aux = 0x00;
 uint16_t Analog_Read_Current = 0x00, Voltage_mv = 0x00,V_Bat_Calc = 0x00, Analog_Read_Avg = 0x00, Diff = 0x00, Min_Diff = 0xFFFFFF;
 uint8_t i = 0x00, Table_Size = 50, Index = 0x00;
 
 	Analog_Read_Current = Analog_read;
 
-	for(i = 0x00; i <= 98; i++)
+	for(i = 0x00; i <= (Filtering_Window_Size-2); i++)
 		{
 		Filter_Array[i] = Filter_Array[i+1];
 		}
-	Filter_Array[99] = Analog_Read_Current;
-	for(i = 0x00; i <= 100; i++) Avg_Aux += Filter_Array[i];
+	Filter_Array[Filtering_Window_Size-1] = Analog_Read_Current;
+	for(i = 0x00; i <= Filtering_Window_Size; i++) Avg_Aux += Filter_Array[i];
 
-	Analog_Read_Avg = Avg_Aux * 0.01;
-	Voltage_mv = (Analog_Read_Avg*Conv_Factor_mv);//*Res_Div_Ratio) + Perdas_Constantes_Fios_mv;
-	V_Bat_Calc = (Voltage_mv*Res_Div_Ratio) + Perdas_Constantes_Fios_mv;
-	for(uint8_t i = 0; i <= Table_Size; i++) {
+	Analog_Read_Avg = Avg_Aux/Filtering_Window_Size;
+	Voltage_mv = (Analog_Read_Avg*Conv_Factor_mv);
+	V_Bat_Calc = (Voltage_mv*Res_Div_Ratio);
+
+	for(uint8_t i = 0; i < Table_Size; i++) {
 		Diff = abs(V_Bat_Calc - V_Bat_mv_table[i]);
         if (Diff < Min_Diff) {
             Min_Diff = Diff;
@@ -87,7 +89,7 @@ void Erase_SD_Card(){
 
 FRESULT SD_Operation_Result = FR_DISK_ERR;
 
-	HAL_TIM_Base_Stop_IT(&htim9);
+	HAL_TIM_Base_Stop_IT(&htim11);
 	HAL_TIM_Base_Stop_IT(&htim10);
 
 	HAL_UART_DMAStop(&huart1);
@@ -127,7 +129,7 @@ Data_FS Read_SD_Data(){
 	    }
 
 	 SD_Operation_Result1 = f_read(&fil, Rbuffer, f_size(&fil), &Read_Bytes_Count);
-	 if(SD_Operation_Result1 == FR_OK){
+	 if(SD_Operation_Result1 == FR_OK && Read_Bytes_Count > 0){
 	    for(i = 0x00; i <= Read_Bytes_Count; i++){
 	    	if(Rbuffer[i] == ',' || Rbuffer[i] == '\r' ){
 	    		Comma_Count++;
@@ -200,10 +202,11 @@ Data_FS Read_SD_Data(){
 	    	Curr_Comma_Pos = 0x00;
 	    }
 	}
-f_close(&fil);
-Filestruct.Size = Curr_Line;
+	    Filestruct.Size = Curr_Line;
 }
-	 else Filestruct.Size = 255;
+	 else Filestruct.Size = 0;
+
+	 f_close(&fil);
 
 return Filestruct;
 
@@ -319,6 +322,37 @@ void OTA_Log_Routine(Data_FS Data){ //For some reason, strategy using while and 
 	}
 }
 
+void Store_Data_SD_30m(uint16_t Time_ms){
+
+	Data_FS Actual_Data;
+	uint8_t Last_Line = 0x00, Numlines = 0x00, len = 0x00, Time_s = 0x00, DummWC = 0x00 ,Car_Num = 0x00;
+	uint16_t Time_ms_format = 0x00;
+	char Write_Payload[20];
+	FRESULT SD_Operation_Result1 = FR_DISK_ERR;
+
+	Time_s = ceil(Time_ms/1000);
+	Time_ms_format = Time_ms%1000;
+
+
+	Actual_Data = Read_SD_Data();
+	Numlines = Actual_Data.Size + 1;
+
+	Car_Num = Nextion_Get_Car_Num();
+
+	len = sprintf(Write_Payload,"%d,%d,%d.%d,--\r\n",Numlines,Car_Num,Time_s,Time_ms_format);
+
+	SD_Operation_Result1 = f_open(&fil, "ResultadosAVF.txt", FA_OPEN_EXISTING | FA_WRITE);
+	SD_Operation_Result1 = f_lseek(&fil, f_size(&fil)); // Move The File Pointer To The EOF (End-Of-File)
+
+	SD_Operation_Result1 = f_write(&fil, Write_Payload, len, &DummWC);
+	SD_Operation_Result1 = f_close(&fil);
+
+	Nextion_SD_Write_Confirmation_Page();
+
+	Finished_30m_Flag = 0x00;
+
+
+}
 
 
 

@@ -25,22 +25,23 @@ uint8_t Calc_Batt_Perc(){
 
 static uint16_t V_Bat_mv[] = {2210, 2610, 2820, 2940, 3040, 3120, 3190, 3270, 3320, 3370, 3410, 3430, 3440, 3460, 3480, 3500, 3520, 3530, 3550, 3570, 3590, 3600, 3610, 3630, 3650, 3670, 3690, 3700, 3730, 3750, 3770, 3780, 3800, 3820, 3840, 3850, 3870, 3900, 3920, 3940, 3960, 3990, 4010, 4010, 4019, 4030, 4040, 4050, 4070, 4100};
 
-static float Conv_Factor_mv = 0.82051282, Res_Div_Ratio = 2.784722;
-uint16_t Wire_Losses_mv = 14;
+static float Conv_Factor_mv = 0.8119658, Res_Div_Ratio = 2; //Conv factor regards the ADC conversion bits-->mV (3.33/4095)*1000. ResRatio regards the hardware.
+uint8_t Filtering_Window_Size = 20;
+
 uint32_t Avg_Aux = 0x00;
 uint16_t Analog_Read_Current = 0x00, Voltage_mv = 0x00, Analog_Read_Avg = 0x00, Diff = 0x00, Min_Diff = 0xFFFFFF;
 uint8_t i = 0x00, Table_Size = 50, Index = 0x00;
 
 	Analog_Read_Current = Analog_read;
 
-	for(i = 0x00; i <= 98; i++)
+	for(i = 0x00; i <= (Filtering_Window_Size-2); i++)
 		{
 		Filter_Array[i] = Filter_Array[i+1];
 		}
-	Filter_Array[99] = Analog_Read_Current;
-	for(i = 0x00; i < 100; i++) Avg_Aux += Filter_Array[i];
+	Filter_Array[(Filtering_Window_Size-1)] = Analog_Read_Current;
+	for(i = 0x00; i < Filtering_Window_Size; i++) Avg_Aux += Filter_Array[i];
 
-	Analog_Read_Avg = Avg_Aux*0.01;
+	Analog_Read_Avg = Avg_Aux/Filtering_Window_Size;
 	Voltage_mv = (Analog_Read_Avg*Conv_Factor_mv*Res_Div_Ratio);
 
 	for(uint8_t i = 0; i <= Table_Size; i++) {

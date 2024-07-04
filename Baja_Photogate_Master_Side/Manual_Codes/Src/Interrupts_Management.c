@@ -8,26 +8,29 @@
 #include "data_types.h"
 #include "fatfs.h"
 
-
-
 extern volatile BEACONMODE_TypeDef Device_Current_Mode;
 extern TIM_HandleTypeDef htim10;
-extern TIM_HandleTypeDef htim9;
+extern TIM_HandleTypeDef htim11;
 extern UART_HandleTypeDef huart1;
 
 extern volatile uint8_t WDTf_Beacon1, WDTf_Beacon2, WDTf_Beacon3, WDTf_Beacon4;
+extern volatile uint16_t Msg_Count_Prev_B1, Msg_Count_Prev_B2;
+extern volatile uint16_t Timestamp_B1_Lastmsg_ms, Timestamp_B2_Lastmsg_ms;
+extern volatile uint16_t Timestamp_B1_Lastmsg_s, Timestamp_B2_Lastmsg_s;
 
 extern FRESULT SD_Operation_Result;
 
 
 
-volatile uint16_t StopWatch_Counter_ms = 0x00, Meastime_us = 0x00;
+volatile uint16_t StopWatch_Counter_ms = 0x00, Meastime_ms = 0x00;
 volatile uint8_t StopWatch_Counter_secs = 0x00, Stopwatch_Counter_Mins = 0x00;
-volatile uint8_t Meastime_secs = 0x00, Meastime_Mins = 0x00;
+volatile uint8_t Meastime_secs = 0x00;
+volatile uint32_t Start_Time_Full_ms = 0x00, End_Time_Full_ms = 0x00, Measured_Time_Full_ms = 0x00;
 volatile uint8_t Generic_Tim_Count_200ms = 0x00;
 volatile char Payload_Log[32];
 volatile uint8_t RX_Payload_Flag = 0x00, Dummy_Payload_Len = 0x00;
-volatile uint8_t Cancel_req = 0x00, Start_Req = 0x00, Step = 0x00, Sync = 0x00, Setup_Complete = 0x00;
+volatile uint8_t Cancel_req = 0x00, Start_Req = 0x00, Step = 0x00, Sync = 0x00, Setup_Complete = 0x00, Finished_30m_Flag = 0x00;
+
 
 
 volatile uint8_t Beacon_Blocker = 0x00; 	//This variable follows the expected beacon order, and only allows recordings to be done whe this given order is fullfilled.
@@ -51,20 +54,23 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management o
 {
 
 
-	if(htim->Instance == TIM9)			//Master Stopwatch and Sync timer interrupts
+	if(htim->Instance == TIM11)			//Master Stopwatch and Sync timer interrupts
 		{
+
 		StopWatch_Counter_ms++;
+
+
 
 		if(StopWatch_Counter_ms >= 1000)
 		{
 			StopWatch_Counter_ms = 0x00;
 			StopWatch_Counter_secs++;
-			if(StopWatch_Counter_secs >= 60)
-			{
-				StopWatch_Counter_secs = 0x00;
-				Stopwatch_Counter_Mins++;
+//			if(StopWatch_Counter_secs >= 60)
+//			{
+//				StopWatch_Counter_secs = 0x00;
+//				Stopwatch_Counter_Mins++;
 
-			}
+			//}
 
 		}
 		}
@@ -87,10 +93,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management o
 		Calc_Batt_Perc();
 
 
+
 		if(Generic_Tim_Count_200ms >= 5){
 
 			Generic_Tim_Count_200ms = 0x00;
 			if(Device_Current_Mode == STANDBY_MODE || Device_Current_Mode == RACE_MODE) Regular_Nextion_Updates();
+
 
 			}
 
@@ -110,6 +118,9 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 	Nextion_Pages_TypeDef Nextion_Page = 0xff;
 
 	uint8_t Msg_Len = Payload_Len;
+	uint16_t Delta_msgs = 0xff, Message_Milis_Calc = 0x00;
+	uint16_t Timestamp_Corrected_s = 0x00, Timestamp_Corrected_ms = 0x00;
+
 
 	float Vehicle_Speed = 0.0;
 	float dist = BEACON_DISTANCE;
@@ -137,7 +148,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 
 							if(Message.Beacon_Mode != STANDBY_MODE) Update_Sensor_Status_Stdby(Message.Beacon_Id, 0, Message.Sensor_status, Message.Battery_Percentage);
 							else Update_Sensor_Status_Stdby(Message.Beacon_Id, 1, Message.Sensor_status, Message.Battery_Percentage);
-
 							Beacon_Sync_Calcs(&Message);
 
 							break;
@@ -146,42 +156,45 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 
 							if(Message.Beacon_Mode != RACE_MODE) {
 								Update_Sensor_Status_Run(Message.Beacon_Id, 0); //At Run Page, indicates that the sensor is not on the same status as the master (STANDBY instead of RACE)
-								msg_len = sprintf( msg,"Beacon of ID 0x%x is out of sync!! \n", Message.Beacon_Id);
-								CDC_Transmit_FS(msg, msg_len);
 								RF_Transmit_Config_MSG(Device_Current_Mode); // Sends a configuration message in order to sync the modules
 
 							}
 
 							else if(Message.Beacon_Mode == RACE_MODE) {
 
-								Beacon_Sync_Calcs(&Message);
-								Update_Sensor_Status_Run(Message.Beacon_Id, 1); //At Run Page, indicates that the sensor is on the same status as the master (RACE)
+								if(Message.Sensor_status == NON_INTERRUPTED){
+									 Beacon_Sync_Calcs(&Message);
+									 Update_Sensor_Status_Run(Message.Beacon_Id, 1); //At Run Page, indicates that the sensor is on the same status as the master (RACE)
+								 }
+								else if (Message.Sensor_status == INTERRUPTED){
+									if (Message.Beacon_Id == BEACON1  && Beacon_Blocker == 0x00){
+										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B1;
+										Message_Milis_Calc = ((Message.Time_MilisH << 8) + Message.Time_MilisL);
 
-									if (Message.Beacon_Id == BEACON1  && Beacon_Blocker == 0x00 && Message.Sensor_status == INTERRUPTED){
+										Start_Time_Full_ms = (Timestamp_B1_Lastmsg_s*1000) + Timestamp_B1_Lastmsg_ms;
+										Start_Time_Full_ms += (Delta_msgs*1000) + Message_Milis_Calc;
 
-										msg_len = sprintf( msg,"Car detected at BEACON 1 - StopWatch Started! \n");
-										CDC_Transmit_FS(msg, msg_len);
 										Beacon_Blocker = 0x01;
+
 											}
 
-
 									else if (Message.Beacon_Id == BEACON2  && Beacon_Blocker == 0x01 && Message.Sensor_status == INTERRUPTED){
+										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B2;
+										Message_Milis_Calc = (Message.Time_MilisH << 8) + Message.Time_MilisL;
 
-										HAL_TIM_Base_Stop_IT(&htim9);
+										End_Time_Full_ms = (Timestamp_B2_Lastmsg_s*1000) + Timestamp_B2_Lastmsg_ms;
+										End_Time_Full_ms += (Delta_msgs*1000) + Message_Milis_Calc;
 
-										Meastime_secs = StopWatch_Counter_secs;
-										Meastime_Mins = Stopwatch_Counter_Mins;
+										Measured_Time_Full_ms = End_Time_Full_ms - Start_Time_Full_ms;
+
+										Meastime_secs = ceil(Measured_Time_Full_ms/1000);
+										Meastime_ms = Measured_Time_Full_ms%1000;
+										Display_30m_time(Meastime_ms, Meastime_secs);
 
 
-										StopWatch_Counter_secs = 0x00;
-										Stopwatch_Counter_Mins = 0x00;
-
-										msg_len = sprintf( msg,'Car detected at BEACON 2 - Measured time: %d:%.2d.%.3d%d \n', Meastime_Mins, Meastime_secs, (Meastime_us/2),((Meastime_us%2)));
-										CDC_Transmit_FS(msg, msg_len);
-
-										Beacon_Blocker = 0x02;
+										Finished_30m_Flag = 0x01;
 										}
-
+									/*
 									else if (Message.Beacon_Id == BEACON3 && Beacon_Blocker == 0x02){
 
 										HAL_TIM_Base_Start_IT(&htim9);
@@ -200,7 +213,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 										Vehicle_Speed = (StopWatch_Counter_us/2) + ((StopWatch_Counter_us%2)*0.1);
 										Vehicle_Speed = dist/Vehicle_Speed;
 										Vehicle_Speed = (Vehicle_Speed*3.6);
-										 */
+
 										msg_len = sprintf( msg,'Vehicle Speed was: %.3f km/h\n', Vehicle_Speed);
 										CDC_Transmit_FS(msg, msg_len);
 
@@ -208,8 +221,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 										Beacon_Blocker = 0x00;
 										}
 										break;
+										*/
 
 					break;
+					}
 					}
 
 
@@ -232,17 +247,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 }
 }
 
+
 void Regular_Nextion_Updates(){
 
 
-	Nextion_Pages_TypeDef Nextion_Page = 0xff;
-	uint8_t Battery_Status_Perc = 0x00;
+	Nextion_Pages_TypeDef Nextion_Page = 0xff, Request_Page = 0xff;
+	uint8_t Battery_Status_Perc = 0x00, Request_To_Save = 0x00;
 	uint16_t Batt_Voltage_mv = 0x00;
     Data_FS SD_Data;
 
 
 	Nextion_Page = Get_Nextion_Pages();
-
 
 	switch(Nextion_Page){
 
@@ -256,19 +271,25 @@ void Regular_Nextion_Updates(){
 		Batt_Voltage_mv = Calc_Batt_Perc(1);
 		Nextion_Update_Battery(Battery_Status_Perc, Batt_Voltage_mv);
 
+
 		break;
 
 	case RACE_PAGE:
 		Check_Apply_OPmode_Change();
 		WDT_Calcs_Updates(Nextion_Page);
+		Request_To_Save = Nextion_Get_Save_File_Req();
+
+		if((Finished_30m_Flag == 0x01) && (Request_To_Save == 1)) Store_Data_SD_30m(Measured_Time_Full_ms);
+
 		break;
 
 
 
 	case LOCAL_REPORT_PAGE:
 
+		memset(&SD_Data, 0x00, sizeof(SD_Data));
 		SD_Data = Read_SD_Data();
-		Nextion_Display_Mem_Data(SD_Data);
+		if(SD_Data.Size > 0)Nextion_Display_Mem_Data(SD_Data);
 
 		break;
 
