@@ -59,7 +59,7 @@ def extract_variables(data):
     passada = data[0:3]
     carro = data[4:7]
     metros_30 = data[8:14]
-    velocidade = data[15:17]
+    velocidade = data[15:21]
     return passada, carro, metros_30, velocidade
 
 # Function to initialize Excel pythonworkbook and worksheet
@@ -67,7 +67,7 @@ def initialize_excel():
     workbook = openpyxl.Workbook()
     sheet = workbook.active
     sheet.title = "Serial Data"
-    sheet.append(["Passada", "Carro", "30 Metros", "Velocidade km/h"])
+    sheet.append(["Passada", "Carro", "30 Metros (s)", "Velocidade (km/h)"])
     return workbook, sheet
 
 # Function to append data to Excel worksheet
@@ -112,6 +112,11 @@ def main(com_port):
     Results = []
     while i < Num_Lines:
         # Read a line from the serial port
+        if Num_Lines >= 1:
+            line_write = ("Line Ok").encode('UTF-8')
+            ser.write(line_write)
+            time.sleep(0.1)
+
         line = ser.readline().decode('utf-8')
         if line != '':
             # Extract variables from the received line
@@ -120,7 +125,7 @@ def main(com_port):
             append_to_excel(sheet, [passada, carro, metros_30, velocidade])
             Results.append([passada, carro, metros_30, velocidade])
 
-
+            
             line_write = ("Line Ok").encode('UTF-8')
             ser.write(line_write)
             i = i+1

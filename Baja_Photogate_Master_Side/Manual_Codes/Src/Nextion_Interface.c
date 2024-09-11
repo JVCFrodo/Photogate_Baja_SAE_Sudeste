@@ -273,16 +273,20 @@ void Display_30m_time(uint16_t milis, uint8_t secs){
 
 }
 
-void Display_Speed(uint16_t speed){
+void Display_30m_Started(){
 
-
-	float Speed_f = 0.0;
-
-	Speed_f = speed/1000;
-
-	Msg_len = sprintf(Send_msg, "t1.txt= %.2f km/h%c%c%c", Speed_f, Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	Msg_len = sprintf(Send_msg, "t0.txt=%cContagem Iniciada%c%c%c%c",'"','"',Nextion_EndChar,Nextion_EndChar,Nextion_EndChar);
 	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 
+
+}
+
+
+void Display_Speed(float Speed){
+
+
+	Msg_len = sprintf(Send_msg, "t1.txt=%c %.3f km/h%c%c%c%c",'"',Speed,'"',Nextion_EndChar,Nextion_EndChar,Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 
 }
 
@@ -462,7 +466,7 @@ void Nextion_Display_Mem_Data(Data_FS Data){
 			Msg_len = sprintf(Send_msg, "t%d.txt=%c%.6s%c%c%c%c",(i*4) + 2,'"',Data.Lines[i+offset].Aceleracao,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 			HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 
-			Msg_len = sprintf(Send_msg, "t%d.txt=%c%.2s%c%c%c%c",(i*4) + 3,'"',Data.Lines[i+offset].Velocidade,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+			Msg_len = sprintf(Send_msg, "t%d.txt=%c%.6s%c%c%c%c",(i*4) + 3,'"',Data.Lines[i+offset].Velocidade,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 			HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 
 		}

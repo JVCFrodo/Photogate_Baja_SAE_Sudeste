@@ -7,6 +7,7 @@
 #include "nextion_interface.h"
 #include "data_types.h"
 #include "fatfs.h"
+#include "aditional_functions_master.h"
 
 extern volatile BEACONMODE_TypeDef Device_Current_Mode;
 extern TIM_HandleTypeDef htim10;
@@ -14,9 +15,9 @@ extern TIM_HandleTypeDef htim11;
 extern UART_HandleTypeDef huart1;
 
 extern volatile uint8_t WDTf_Beacon1, WDTf_Beacon2, WDTf_Beacon3, WDTf_Beacon4;
-extern volatile uint16_t Msg_Count_Prev_B1, Msg_Count_Prev_B2;
-extern volatile uint16_t Timestamp_B1_Lastmsg_ms, Timestamp_B2_Lastmsg_ms;
-extern volatile uint16_t Timestamp_B1_Lastmsg_s, Timestamp_B2_Lastmsg_s;
+extern volatile uint16_t Msg_Count_Prev_B1, Msg_Count_Prev_B2, Msg_Count_Prev_B3, Msg_Count_Prev_B4;
+extern volatile uint16_t Timestamp_B1_Lastmsg_ms, Timestamp_B2_Lastmsg_ms, Timestamp_B3_Lastmsg_ms, Timestamp_B4_Lastmsg_ms;
+extern volatile uint16_t Timestamp_B1_Lastmsg_s, Timestamp_B2_Lastmsg_s, Timestamp_B3_Lastmsg_s, Timestamp_B4_Lastmsg_s;
 
 extern FRESULT SD_Operation_Result;
 
@@ -26,11 +27,12 @@ volatile uint16_t StopWatch_Counter_ms = 0x00, Meastime_ms = 0x00;
 volatile uint8_t StopWatch_Counter_secs = 0x00, Stopwatch_Counter_Mins = 0x00;
 volatile uint8_t Meastime_secs = 0x00;
 volatile uint32_t Start_Time_Full_ms = 0x00, End_Time_Full_ms = 0x00, Measured_Time_Full_ms = 0x00;
+volatile uint32_t Start_Time_Speed_Calc_ms = 0x00, End_Time_Speed_Calc_ms = 0x00, Measured_Time_Speed_Calc_ms = 0x00;
 volatile uint8_t Generic_Tim_Count_200ms = 0x00;
 volatile char Payload_Log[32];
 volatile uint8_t RX_Payload_Flag = 0x00, Dummy_Payload_Len = 0x00;
-volatile uint8_t Cancel_req = 0x00, Start_Req = 0x00, Step = 0x00, Sync = 0x00, Setup_Complete = 0x00, Finished_30m_Flag = 0x00;
-
+volatile uint8_t Cancel_req = 0x00, Start_Req = 0x00, Step = 0x00, Sync = 0x00, Setup_Complete = 0x00, Finished_30m_Flag = 0x00, Finished_Speed_Flag = 0x00;
+volatile float Vehicle_Speed = 0.0;
 
 
 volatile uint8_t Beacon_Blocker = 0x00; 	//This variable follows the expected beacon order, and only allows recordings to be done whe this given order is fullfilled.
@@ -90,7 +92,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management o
 		nRF24_FlushRX();
 		nRF24_FlushTX();
 		nRF24_ClearIRQFlags();
-		Calc_Batt_Perc();
+		Calc_Batt_Perc(0);
+
 
 
 
@@ -122,22 +125,22 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 	uint16_t Timestamp_Corrected_s = 0x00, Timestamp_Corrected_ms = 0x00;
 
 
-	float Vehicle_Speed = 0.0;
+
 	float dist = BEACON_DISTANCE;
 
 	switch(GPIO_Pin){
 
-
 	case NRF_IRQ_Pin:
 
 		Irq_Flags = nRF24_GetIRQFlags();
-		Nextion_Page = Get_Nextion_Pages();
+
 
 		if((Irq_Flags & nRF24_FLAG_RX_DR) == nRF24_FLAG_RX_DR){
 			if(Device_Current_Mode == STANDBY_MODE || Device_Current_Mode == RACE_MODE){
 				pipe = nRF24_ReadPayload(&Message, &Msg_Len);
 
 				if(Message.Beacon_Mode != Device_Current_Mode) RF_Transmit_Config_MSG(Device_Current_Mode);
+				Nextion_Page = Get_Nextion_Pages();
 
 				if(Nextion_Page == STANDBY_PAGE || Nextion_Page == RACE_PAGE){
 
@@ -156,8 +159,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 
 							if(Message.Beacon_Mode != RACE_MODE) {
 								Update_Sensor_Status_Run(Message.Beacon_Id, 0); //At Run Page, indicates that the sensor is not on the same status as the master (STANDBY instead of RACE)
-								RF_Transmit_Config_MSG(Device_Current_Mode); // Sends a configuration message in order to sync the modules
-
+								RF_Transmit_Config_MSG(RACE_MODE); // Sends a configuration message in order to sync the modules
+								break;
 							}
 
 							else if(Message.Beacon_Mode == RACE_MODE) {
@@ -165,20 +168,29 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 								if(Message.Sensor_status == NON_INTERRUPTED){
 									 Beacon_Sync_Calcs(&Message);
 									 Update_Sensor_Status_Run(Message.Beacon_Id, 1); //At Run Page, indicates that the sensor is on the same status as the master (RACE)
-								 }
-								else if (Message.Sensor_status == INTERRUPTED){
-									if (Message.Beacon_Id == BEACON1  && Beacon_Blocker == 0x00){
+								}
+								else if(Message.Sensor_status == INTERRUPTED){
+
+									switch (Message.Beacon_Id){
+
+									case BEACON1:
+
+									if (Beacon_Blocker == 0x00){
 										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B1;
 										Message_Milis_Calc = ((Message.Time_MilisH << 8) + Message.Time_MilisL);
 
 										Start_Time_Full_ms = (Timestamp_B1_Lastmsg_s*1000) + Timestamp_B1_Lastmsg_ms;
 										Start_Time_Full_ms += (Delta_msgs*1000) + Message_Milis_Calc;
+										Display_30m_Started();
 
 										Beacon_Blocker = 0x01;
 
-											}
+										}
+										break;
 
-									else if (Message.Beacon_Id == BEACON2  && Beacon_Blocker == 0x01 && Message.Sensor_status == INTERRUPTED){
+									case BEACON2:
+
+									if (Beacon_Blocker == 0x01){
 										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B2;
 										Message_Milis_Calc = (Message.Time_MilisH << 8) + Message.Time_MilisL;
 
@@ -192,54 +204,70 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was impo
 										Display_30m_time(Meastime_ms, Meastime_secs);
 
 
+										Beacon_Blocker = 0x02;
 										Finished_30m_Flag = 0x01;
 										}
-									/*
-									else if (Message.Beacon_Id == BEACON3 && Beacon_Blocker == 0x02){
+										break;
 
-										HAL_TIM_Base_Start_IT(&htim9);
+									case BEACON3:
 
-										msg_len = sprintf( msg,'Car detected at BEACON 3 - Timer reset \n');
-										CDC_Transmit_FS(msg, msg_len);
+									if (Beacon_Blocker == 0x02){
+										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B3;
+										Message_Milis_Calc = ((Message.Time_MilisH << 8) + Message.Time_MilisL);
+
+										Start_Time_Speed_Calc_ms = (Timestamp_B3_Lastmsg_s*1000) + Timestamp_B3_Lastmsg_ms;
+										Start_Time_Speed_Calc_ms += (Delta_msgs*1000) + Message_Milis_Calc;
 
 										Beacon_Blocker = 0x03;
 										}
+										break;
 
-									else if (Message.Beacon_Id == BEACON4 && Beacon_Blocker == 0x03){
+									case BEACON4:
 
-										HAL_TIM_Base_Stop_IT(&htim9);
+									if (Beacon_Blocker == 0x03){
+										uint8_t Interger_Part = 0x00;
+										uint16_t Decimal_Part = 0x00;
 
-										/*
-										Vehicle_Speed = (StopWatch_Counter_us/2) + ((StopWatch_Counter_us%2)*0.1);
+										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B4;
+										Message_Milis_Calc = (Message.Time_MilisH << 8) + Message.Time_MilisL;
+
+										End_Time_Speed_Calc_ms = (Timestamp_B4_Lastmsg_s*1000) + Timestamp_B4_Lastmsg_ms;
+										End_Time_Speed_Calc_ms += (Delta_msgs*1000) + Message_Milis_Calc;
+
+										Measured_Time_Speed_Calc_ms = End_Time_Speed_Calc_ms - Start_Time_Speed_Calc_ms;
+
+										Vehicle_Speed = Delta_msgs + (float)(Measured_Time_Speed_Calc_ms/1000.0);
 										Vehicle_Speed = dist/Vehicle_Speed;
 										Vehicle_Speed = (Vehicle_Speed*3.6);
 
-										msg_len = sprintf( msg,'Vehicle Speed was: %.3f km/h\n', Vehicle_Speed);
-										CDC_Transmit_FS(msg, msg_len);
+										Display_Speed(Vehicle_Speed);
 
-										RF_Transmit_Config_MSG(STANDBY_MODE);
-										Beacon_Blocker = 0x00;
+										Finished_Speed_Flag = 0x01;
+
+										Beacon_Blocker = 0x04;
+
 										}
 										break;
-										*/
 
-					break;
+									default:
+										break;
+									}
+								}
+							}
+
+						default:
+							break;
 					}
-					}
-
-
-					default:
-					break;
-				}
 				}
 		}
-			else if(Device_Current_Mode == OTA_REPORT_MODE){
-				pipe = nRF24_ReadPayload(Payload_Log, &Dummy_Payload_Len);
-				RX_Payload_Flag = 0x01;
-
-
-
+			else if (Device_Current_Mode == OTA_REPORT_MODE){
+				Nextion_Page = Get_Nextion_Pages();
+				if(Nextion_Page == OTA_REPORT_PAGE){
+					pipe = nRF24_ReadPayload(Payload_Log, &Dummy_Payload_Len);
+					RX_Payload_Flag = 0x01;
+				}
 			}
+
 			}
 
 		nRF24_ClearIRQFlags();
@@ -278,8 +306,8 @@ void Regular_Nextion_Updates(){
 		Check_Apply_OPmode_Change();
 		WDT_Calcs_Updates(Nextion_Page);
 		Request_To_Save = Nextion_Get_Save_File_Req();
-
-		if((Finished_30m_Flag == 0x01) && (Request_To_Save == 1)) Store_Data_SD_30m(Measured_Time_Full_ms);
+		if((Finished_30m_Flag == 0x01) && (Request_To_Save == 1) && (Finished_Speed_Flag == 0)) Store_Data_SD_30m(Measured_Time_Full_ms);
+		if((Finished_30m_Flag == 0x01) && (Request_To_Save == 1) && (Finished_Speed_Flag == 1)) Store_Data_SD_All(Measured_Time_Full_ms, Vehicle_Speed);
 
 		break;
 

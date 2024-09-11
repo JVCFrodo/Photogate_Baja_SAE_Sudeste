@@ -104,7 +104,6 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 void NRF_24_Master_Init(){
 
 
-		//   - RF channel: 115 (2515MHz)
 		//   - data rate: 250kbps (minimum possible, to increase reception reliability)
 		//   - CRC scheme: 2 byte
 
@@ -122,6 +121,7 @@ void NRF_24_Master_Init(){
 	    nRF24_SetAddrWidth(3);
 
 	    //nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR);
+
 	    nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR0);
 	    nRF24_SetAddr(nRF24_PIPE1, nRF24_ADDR1);
 	    nRF24_SetAddr(nRF24_PIPE2, nRF24_ADDR2);

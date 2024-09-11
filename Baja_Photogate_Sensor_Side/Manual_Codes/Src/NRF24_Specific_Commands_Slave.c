@@ -133,19 +133,19 @@ void NRF_24_Slave_Init(){
 	    switch(BeaconID){
 
 	    case BEACON1:
-	    	memcpy(&nRF24_ADDR_Act, nRF24_ADDR0, 3);
+	    	memcpy(&nRF24_ADDR_Act, nRF24_ADDR0, 5);
 	    	break;
 
 	    case BEACON2:
-	    	memcpy(nRF24_ADDR_Act, nRF24_ADDR1, 3);
+	    	memcpy(&nRF24_ADDR_Act, nRF24_ADDR1, 5);
 	    	break;
 
 	    case BEACON3:
-	    	memcpy(nRF24_ADDR_Act, nRF24_ADDR2, 3);
+	    	memcpy(&nRF24_ADDR_Act, nRF24_ADDR2, 5);
 	    	break;
 
 	    case BEACON4:
-	    	memcpy(nRF24_ADDR_Act, nRF24_ADDR3, 3);
+	    	memcpy(&nRF24_ADDR_Act, nRF24_ADDR3, 5);
 	    	break;
 
 	    default:

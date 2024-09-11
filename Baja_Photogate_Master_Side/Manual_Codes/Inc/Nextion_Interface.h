@@ -19,7 +19,9 @@ void Nextion_Update_Battery(uint8_t Bat_Status_perc, uint16_t Batt_Voltage_mV);
 void Clear_UART_RxTx();
 void Nextion_Debug_Stopwatch_Send();
 void Nextion_SD_Write_Confirmation_Page();
+void Display_Speed(float Speed);
 uint8_t Nextion_Get_Start_Download_Request();
+
 
 uint8_t Get_Nextion_Request_Page();
 
@@ -46,7 +48,7 @@ typedef enum{
 }Mem_Erase_Status;
 
 
-
+Nextion_Pages_TypeDef Get_Nextion_Pages();
 
 
 #endif /* NEXTION_INTERFACE_H */

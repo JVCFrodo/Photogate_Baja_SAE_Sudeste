@@ -59,7 +59,6 @@ void Beacon_Sync_Calcs(BEACONMESSAGE_TypeDef* Message){
 
 		Msg_Count_Prev_B1 = Msg_Count_Act_B1;
 
-		HAL_GPIO_TogglePin(Led_Azul_GPIO_Port, Led_Azul_Pin);
 
 		break;
 
@@ -119,26 +118,22 @@ void WDT_Calcs_Updates(Nextion_Pages_TypeDef Page){
 
 
 	if(Device_Current_Mode == STANDBY_MODE && Page == STANDBY_PAGE){
-		if(WDTf_Beacon1 >= 20) Update_Sensor_Status_Stdby(BEACON1, 0, INTERRUPTED, 255);
-		if(WDTf_Beacon2 >= 20) Update_Sensor_Status_Stdby(BEACON2, 0, INTERRUPTED, 255);
-		//if(WDTf_Beacon3 >= 20) Update_Sensor_Status_Stdby(BEACON3, 0, INTERRUPTED, 255);
-		//if(WDTf_Beacon4 >= 20) Update_Sensor_Status_Stdby(BEACON4, 0, INTERRUPTED, 255);
+		if(WDTf_Beacon1 >= 20) Update_Sensor_Status_Stdby(BEACON1, 0, INTERRUPTED, 0);
+		if(WDTf_Beacon2 >= 20) Update_Sensor_Status_Stdby(BEACON2, 0, INTERRUPTED, 0);
+		if(WDTf_Beacon3 >= 20) Update_Sensor_Status_Stdby(BEACON3, 0, INTERRUPTED, 0);
+		if(WDTf_Beacon4 >= 20) Update_Sensor_Status_Stdby(BEACON4, 0, INTERRUPTED, 0);
 
 		}
 
 	else if(Device_Current_Mode == RACE_MODE && Page == RACE_PAGE)
 	{
-		if(WDTf_Beacon1 >= 20){
-
-		Update_Sensor_Status_Run(BEACON1, 0);
-
-		}
+		if(WDTf_Beacon1 >= 20)Update_Sensor_Status_Run(BEACON1, 0);
 
 		if(WDTf_Beacon2 >= 20) Update_Sensor_Status_Run(BEACON2, 0);
 
-		if(WDTf_Beacon3 >= 10) Update_Sensor_Status_Run(BEACON3, 0);
+		if(WDTf_Beacon3 >= 20) Update_Sensor_Status_Run(BEACON3, 0);
 
-		if(WDTf_Beacon4 >= 10) Update_Sensor_Status_Run(BEACON4, 0);
+		if(WDTf_Beacon4 >= 20) Update_Sensor_Status_Run(BEACON4, 0);
 
 	}
 

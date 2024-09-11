@@ -44,7 +44,7 @@ build/
 *~
 *.bak
 
-# NRF24 debuggiong files
+# NRF24 debugging files
 *.captures/
 *.complex16s
 
@@ -52,6 +52,7 @@ build/
 .vscode/
 .idea/
 .DS_Store
+*.xlsx
 
 # Environment-specific files
 .env

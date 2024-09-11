@@ -9,7 +9,7 @@ typedef struct{
 	uint8_t Passada[3];
 	uint8_t Carro[3];
 	uint8_t Aceleracao[6];
-	uint8_t Velocidade[2];
+	uint8_t  Velocidade[6];
 } Data_Line_Struct;
 
 typedef struct{

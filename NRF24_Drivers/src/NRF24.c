@@ -83,6 +83,7 @@ static void nRF24_WriteMBReg(uint8_t reg, uint8_t *pBuf, uint8_t count) {
 // Set transceiver to it's initial state
 // note: RX/TX pipe addresses remains untouched
 void nRF24_Init(void) {
+	nRF24_CSN_L();
 	// Write to registers their initial values
 	nRF24_WriteReg(nRF24_REG_CONFIG, 0x08);
 	//nRF24_WriteReg(nRF24_REG_CONFIG, 0x3C);
@@ -274,7 +275,7 @@ void nRF24_SetAddr(uint8_t pipe, const uint8_t *addr) {
 		case nRF24_PIPE4:
 		case nRF24_PIPE5:
 			// Write address LSBbyte (only first byte from the addr buffer)
-			nRF24_WriteReg(nRF24_ADDR_REGS[pipe], *addr);
+			nRF24_WriteReg(nRF24_ADDR_REGS[pipe], (uint8_t) addr[2]);
 			break;
 		default:
 			// Incorrect pipe number -> do nothing
