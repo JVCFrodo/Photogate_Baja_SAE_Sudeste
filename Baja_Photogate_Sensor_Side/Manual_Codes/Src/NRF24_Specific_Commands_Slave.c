@@ -5,14 +5,12 @@
  *      Author: CAJ1SBC
  */
 
-
 #include "hw_dependencies.h"
 #include "shared_definitions.h"
 #include "nrf24.h"
 #include "definitions.h"
 
 #define HEX_CHARS      "0123456789ABCDEF"
-
 
 nRF24_RXResult pipe;
 
@@ -24,10 +22,9 @@ void RF_Read_Settings_Msg(BEACONMODE_TypeDef Received_Mode);
 
 extern volatile uint16_t Message_Counter, Frozen_Timer_ms;
 extern volatile uint16_t StopWatch_Counter_1ms, StopWatch_Counter_100ms;
-extern volatile SENSORSTATS_TypeDef Sensor_Status_Act, Sensor_Status_Prev;
+extern volatile SENSORSTATS_TypeDef Sensor_Status_Act;
 extern BEACONMODE_TypeDef Device_Current_Mode;
 extern uint8_t Interruption_Flag_WDT;
-
 
 // Helpers for transmit mode demo
 
@@ -37,13 +34,13 @@ extern uint8_t Interruption_Flag_WDT;
 
 // Result of packet transmission
 /*
-typedef enum {
-	nRF24_TX_ERROR  = (uint8_t)0x00, // Unknown error
-	nRF24_TX_SUCCESS,                // Packet has been transmitted successfully
-	nRF24_TX_TIMEOUT,                // It was timeout during packet transmit
-	nRF24_TX_MAXRT                   // Transmit failed with maximum auto retransmit count
-} nRF24_TXResult;
-*/
+ typedef enum {
+ nRF24_TX_ERROR  = (uint8_t)0x00, // Unknown error
+ nRF24_TX_SUCCESS,                // Packet has been transmitted successfully
+ nRF24_TX_TIMEOUT,                // It was timeout during packet transmit
+ nRF24_TX_MAXRT                   // Transmit failed with maximum auto retransmit count
+ } nRF24_TXResult;
+ */
 
 nRF24_TXResult tx_res;
 
@@ -71,7 +68,7 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	// note: this solution is far from perfect, better to use IRQ instead of polling the status
 	do {
 		status = nRF24_GetStatus();
-		if (status & (nRF24_FLAG_TX_DS | nRF24_FLAG_MAX_RT)) {
+		if (status & (nRF24_FLAG_TX_DS | nRF24_FLAG_MAX_RT )) {
 			break;
 		}
 	} while (wait--);
@@ -85,7 +82,7 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	}
 
 	// Clear pending IRQ flags
-    nRF24_ClearIRQFlags();
+	nRF24_ClearIRQFlags();
 
 	if (status & nRF24_FLAG_MAX_RT) {
 		// Auto retransmit counter exceeds the programmed maximum limit (FIFO is not removed)
@@ -104,100 +101,102 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	return nRF24_TX_ERROR;
 }
 
+void NRF_24_Slave_Init() {
 
-void NRF_24_Slave_Init(){
+	//   - RF channel: 115 (2515MHz)
+	//   - data rate: 250kbps (minimum possible, to increase reception reliability)
+	//   - CRC scheme: 2 byte
+	uint8_t nRF24_ADDR_Act[3] = { 0 };
+	static const uint8_t nRF24_ADDR0[] = Sensor_1_Pipe;
+	static const uint8_t nRF24_ADDR1[] = Sensor_2_Pipe;
+	static const uint8_t nRF24_ADDR2[] = Sensor_3_Pipe;
+	static const uint8_t nRF24_ADDR3[] = Sensor_4_Pipe;
 
+	// Set RF channel
+	nRF24_SetRFChannel(100);
 
-		//   - RF channel: 115 (2515MHz)
-		//   - data rate: 250kbps (minimum possible, to increase reception reliability)
-		//   - CRC scheme: 2 byte
-	    uint8_t nRF24_ADDR_Act[3] = {0};
-		static const uint8_t nRF24_ADDR0[] = Sensor_1_Pipe;
-		static const uint8_t nRF24_ADDR1[] = Sensor_2_Pipe;
-		static const uint8_t nRF24_ADDR2[] = Sensor_3_Pipe;
-		static const uint8_t nRF24_ADDR3[] = Sensor_4_Pipe;
+	// Set data rate
+	nRF24_SetDataRate(nRF24_DR_250kbps);
 
-	    // Set RF channel
-	    nRF24_SetRFChannel(100);
+	// Set CRC scheme
+	nRF24_SetCRCScheme(nRF24_CRC_2byte);
 
-	    // Set data rate
-	    nRF24_SetDataRate(nRF24_DR_250kbps);
+	// Set address width in bytes, its common for all pipes (RX and TX)
+	nRF24_SetAddrWidth(3);
 
-	    // Set CRC scheme
-	    nRF24_SetCRCScheme(nRF24_CRC_2byte);
+	// Set Tx_Pipe and Pipe0
+	switch (BeaconID) {
 
-	    // Set address width in bytes, its common for all pipes (RX and TX)
-	    nRF24_SetAddrWidth(3);
+	case BEACON1:
+		memcpy(&nRF24_ADDR_Act, nRF24_ADDR0, 5);
+		break;
 
-	    // Set Tx_Pipe and Pipe0
-	    switch(BeaconID){
+	case BEACON2:
+		memcpy(&nRF24_ADDR_Act, nRF24_ADDR1, 5);
+		break;
 
-	    case BEACON1:
-	    	memcpy(&nRF24_ADDR_Act, nRF24_ADDR0, 5);
-	    	break;
+	case BEACON3:
+		memcpy(&nRF24_ADDR_Act, nRF24_ADDR2, 5);
+		break;
 
-	    case BEACON2:
-	    	memcpy(&nRF24_ADDR_Act, nRF24_ADDR1, 5);
-	    	break;
+	case BEACON4:
+		memcpy(&nRF24_ADDR_Act, nRF24_ADDR3, 5);
+		break;
 
-	    case BEACON3:
-	    	memcpy(&nRF24_ADDR_Act, nRF24_ADDR2, 5);
-	    	break;
+	default:
+		break;
 
-	    case BEACON4:
-	    	memcpy(&nRF24_ADDR_Act, nRF24_ADDR3, 5);
-	    	break;
+	}
 
-	    default:
-	    	break;
+	nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR_Act);
+	nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR_Act);
 
-	    }
+	// Configure a specified RX pipe
+	//   pipe - number of the RX pipe, value from 0 to 5
+	//   aa_state - state of auto acknowledgment, one of nRF24_AA_xx values
+	//   payload_len - payload length in bytes
+	nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_ON, Payload_Len);
 
-	    nRF24_SetAddr(nRF24_PIPETX, nRF24_ADDR_Act);
-	    nRF24_SetAddr(nRF24_PIPE0, nRF24_ADDR_Act);
+	// Set TX power (maximum)
+	nRF24_SetTXPower(nRF24_TXPWR_18dBm);
 
-	    // Configure a specified RX pipe
-	    //   pipe - number of the RX pipe, value from 0 to 5
-	    //   aa_state - state of auto acknowledgment, one of nRF24_AA_xx values
-	    //   payload_len - payload length in bytes
-	    nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_ON, Payload_Len);
+	// Set automatic retransmission parameters
+	nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
 
+	// Set operational mode (PTX == transmitter)
+	nRF24_SetOperationalMode(nRF24_MODE_RX);
 
-	    // Set TX power (maximum)
-	    nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+	// Clear any pending IRQ flags
+	nRF24_ClearIRQFlags();
 
-	    // Set automatic retransmission parameters
-	    nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
+	// Wake the transceiver
+	nRF24_SetPowerMode(nRF24_PWR_UP);
 
-	    // Set operational mode (PTX == transmitter)
-	    nRF24_SetOperationalMode(nRF24_MODE_RX);
-
-	    // Clear any pending IRQ flags
-	    nRF24_ClearIRQFlags();
-
-	    // Wake the transceiver
-	    nRF24_SetPowerMode(nRF24_PWR_UP);
-
-	    // Put the transceiver to the RX mode
-	    nRF24_CE_H();
+	// Put the transceiver to the RX mode
+	nRF24_CE_H();
 
 }
 
-void RF_Transmit_Alive_MSG(){
+void RF_Transmit_Alive_MSG() {
 
-	BEACONMESSAGE_TypeDef Payload = {0};
-
+	BEACONMESSAGE_TypeDef Payload = { 0 };
 	uint16_t Elapsed_Time = 0x00;
+	SENSORSTATS_TypeDef Sensor_Status_Send = NON_INTERRUPTED;
+	extern uint16_t Sensor_Ind_Counter;
 
 	StopWatch_Counter_1ms = 0x00;
 	Elapsed_Time = StopWatch_Counter_1ms;
 
 	Message_Counter++;
 
+	if (Sensor_Ind_Counter < 2000)
+		Sensor_Status_Send = INTERRUPTED;
+	else
+		Sensor_Status_Send = NON_INTERRUPTED;
 
 	Payload.Beacon_Id = BeaconID;
 	Payload.Beacon_Mode = Device_Current_Mode;
-	Payload.Sensor_status = Sensor_Status_Act;
+	Payload.Sensor_status = Sensor_Status_Send;
 	Payload.Time_MilisH = (Elapsed_Time >> 8) & 0xFF;
 	Payload.Time_MilisL = Elapsed_Time & 0xFF;
 	Payload.Msg_Counter_H = (Message_Counter >> 8) & 0xFF;
@@ -209,17 +208,11 @@ void RF_Transmit_Alive_MSG(){
 	nRF24_SetOperationalMode(nRF24_MODE_RX);
 	nRF24_CE_H();
 
-
-
-
-
-
-
 }
 
-void RF_Transmit_Trigger_MSG(){
+void RF_Transmit_Trigger_MSG() {
 
-	BEACONMESSAGE_TypeDef Payload = {0};
+	BEACONMESSAGE_TypeDef Payload = { 0 };
 
 	Payload.Beacon_Id = BeaconID;
 	Payload.Beacon_Mode = RACE_MODE;
@@ -237,25 +230,23 @@ void RF_Transmit_Trigger_MSG(){
 
 }
 
-void RF_Read_Settings_Msg(BEACONMODE_TypeDef Received_Mode)
-{
+void RF_Read_Settings_Msg(BEACONMODE_TypeDef Received_Mode) {
 
-	if(Received_Mode != Device_Current_Mode){
+	if (Received_Mode != Device_Current_Mode) {
 
-		switch(Received_Mode){
+		switch (Received_Mode) {
 
-			case STANDBY_MODE:
-				Device_Current_Mode = STANDBY_MODE;
-				Message_Counter = 0x00;
-				Interruption_Flag_WDT = 0x00;
-				break;
+		case STANDBY_MODE:
+			Device_Current_Mode = STANDBY_MODE;
+			Message_Counter = 0x00;
+			Interruption_Flag_WDT = 0x00;
+			break;
 
-			case RACE_MODE:
-				Device_Current_Mode = RACE_MODE;
-				break;
+		case RACE_MODE:
+			Device_Current_Mode = RACE_MODE;
+			break;
 		}
 
 	}
-
 
 }
