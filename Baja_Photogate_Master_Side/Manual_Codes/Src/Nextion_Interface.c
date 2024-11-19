@@ -10,7 +10,7 @@
 extern UART_HandleTypeDef huart1;
 extern volatile BEACONMODE_TypeDef Device_Current_Mode;
 extern volatile int16_t Timestamp_B1_Lastmsg_s, Timestamp_B1_Lastmsg_ms;
-extern volatile StopWatch_Counter_ms, StopWatch_Counter_secs, Stopwatch_Counter_Mins;
+extern volatile uint16_t StopWatch_Counter_ms, StopWatch_Counter_secs, Stopwatch_Counter_Mins;
 extern volatile uint8_t Rx_Buffer[20];
 uint8_t Mem_Sensor_Status = 0x00;
 
@@ -39,8 +39,6 @@ void Wait_Nextion_Resp_us(uint32_t tim_to_wait_us)
 void Nextion_Init(){
 
 
-	uint8_t Recv_msg[20];
-
 	Device_Current_Mode =  STANDBY_MODE;
 
 	Msg_len = sprintf(Send_msg, "get dp%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
@@ -54,9 +52,6 @@ void Nextion_Init(){
 		HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 
 	}
-
-	//for(uint8_t i = 0x00; i < 4; i++) Update_Sensor_Status_Stdby(i, 0, 0, 0);
-
 
 }
 
@@ -222,10 +217,6 @@ void Update_Sensor_Status_Run(uint8_t Sensor, uint8_t Sync){
 	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 	}
 
-
-
-
-
 }
 
 
@@ -254,9 +245,6 @@ uint8_t Get_Car_Num(){
 
 	return CarNum_T;
 
-
-
-
 }
 
 
@@ -265,8 +253,7 @@ void Display_30m_time(uint16_t milis, uint8_t secs){
 	uint8_t Time_String[20];
 
 
-	Msg_len = sprintf(Time_String, "%d.%d s", secs, milis, Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
-
+	Msg_len = sprintf(Time_String, "%d.%03d s", secs, milis, Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 	Msg_len = sprintf(Send_msg, "t0.txt=%c %s%c%c%c%c",'"', Time_String,'"',Nextion_EndChar,Nextion_EndChar,Nextion_EndChar);
 	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 
@@ -275,15 +262,14 @@ void Display_30m_time(uint16_t milis, uint8_t secs){
 
 void Display_30m_Started(){
 
-	Msg_len = sprintf(Send_msg, "t0.txt=%cContagem Iniciada%c%c%c%c",'"','"',Nextion_EndChar,Nextion_EndChar,Nextion_EndChar);
-	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
-
+	HAL_StatusTypeDef Resp = HAL_BUSY;
+	Msg_len = sprintf(Send_msg, "t0.txt=%c Contagem Iniciada%c%c%c%c",'"','"',Nextion_EndChar,Nextion_EndChar,Nextion_EndChar);
+	Resp = HAL_UART_Transmit(&huart1, &Send_msg, Msg_len, 10);
 
 }
 
 
 void Display_Speed(float Speed){
-
 
 	Msg_len = sprintf(Send_msg, "t1.txt=%c %.3f km/h%c%c%c%c",'"',Speed,'"',Nextion_EndChar,Nextion_EndChar,Nextion_EndChar);
 	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
@@ -349,9 +335,6 @@ void Nextion_Update_Battery(uint8_t Bat_Status_perc, uint16_t Batt_Voltage_mV){
 	if(Current_Page == STANDBY_PAGE){
 		Msg_len = sprintf(Send_msg, "t4.txt=%c%d%c%c%c%c%c",'"', Bat_Status_perc,'%','"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 		HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
-		//Msg_len = sprintf(Send_msg, "t5.txt=%cBatV=%dmV%c%c%c%c",'"', Batt_Voltage_mV,'"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
-		//HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
-
 	}
 
 
@@ -431,7 +414,6 @@ void Nextion_Display_Mem_Data(Data_FS Data){
 
 	uint8_t Num_Pages = 0x00, Last_Page_Lines = 0x00,offset = 0x00, Rows_To_Print = 0x00;
 	uint16_t i = 0x00 ;
-	uint16_t Data_Index_per_Page = 0x00;
 
 	Current_Page = Nextion_Get_Current_Display_Data_page();
 

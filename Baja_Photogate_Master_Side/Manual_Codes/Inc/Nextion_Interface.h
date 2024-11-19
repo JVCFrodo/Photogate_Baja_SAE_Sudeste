@@ -3,6 +3,7 @@
 
 #include "main.h"
 #include "shared_definitions.h"
+#include "Data_Types.h"
 #include <stdio.h>
 
 
@@ -20,7 +21,19 @@ void Clear_UART_RxTx();
 void Nextion_Debug_Stopwatch_Send();
 void Nextion_SD_Write_Confirmation_Page();
 void Display_Speed(float Speed);
+void Display_30m_Started();
+void Nextion_Update_SD_Status(uint8_t Status);
+void Nextion_Update_OTA_Progress(uint8_t perc);
+void Nextion_Display_Mem_Data(Data_FS Data);
+void Nextion_Retunr_From_Mem_Erase();
+void Nextion_Update_SD_Status(uint8_t Status);
+
 uint8_t Nextion_Get_Start_Download_Request();
+uint8_t Nextion_Get_Save_File_Req();
+uint8_t Nextion_Get_Cancel_OTA_Req();
+
+
+
 
 
 uint8_t Get_Nextion_Request_Page();

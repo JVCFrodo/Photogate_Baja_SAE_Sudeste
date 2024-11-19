@@ -9,6 +9,7 @@
 #include "shared_definitions.h"
 #include "nrf24.h"
 #include "definitions.h"
+#include "main.h"
 
 #define HEX_CHARS      "0123456789ABCDEF"
 
@@ -20,11 +21,12 @@ void RF_Transmit_Alive_MSG();
 void RF_Transmit_Trigger_MSG();
 void RF_Read_Settings_Msg(BEACONMODE_TypeDef Received_Mode);
 
+extern uint8_t Battery_Actual_Val;
 extern volatile uint16_t Message_Counter, Frozen_Timer_ms;
 extern volatile uint16_t StopWatch_Counter_1ms, StopWatch_Counter_100ms;
 extern volatile SENSORSTATS_TypeDef Sensor_Status_Act;
 extern BEACONMODE_TypeDef Device_Current_Mode;
-extern uint8_t Interruption_Flag_WDT;
+
 
 // Helpers for transmit mode demo
 
@@ -180,16 +182,17 @@ void NRF_24_Slave_Init() {
 void RF_Transmit_Alive_MSG() {
 
 	BEACONMESSAGE_TypeDef Payload = { 0 };
-	uint16_t Elapsed_Time = 0x00;
 	SENSORSTATS_TypeDef Sensor_Status_Send = NON_INTERRUPTED;
 	extern uint16_t Sensor_Ind_Counter;
 
-	StopWatch_Counter_1ms = 0x00;
-	Elapsed_Time = StopWatch_Counter_1ms;
+	nRF24_FlushRX();
+	nRF24_FlushTX();
 
 	Message_Counter++;
 
-	if (Sensor_Ind_Counter < 2000)
+	//Only tells master that the signal is NON_INTERRUPTED if it stays more than 2 seconds without beeing interrupted.
+	//This avoids flase positive situations where the signal is flickering
+	if (Sensor_Ind_Counter < 200)
 		Sensor_Status_Send = INTERRUPTED;
 	else
 		Sensor_Status_Send = NON_INTERRUPTED;
@@ -197,22 +200,28 @@ void RF_Transmit_Alive_MSG() {
 	Payload.Beacon_Id = BeaconID;
 	Payload.Beacon_Mode = Device_Current_Mode;
 	Payload.Sensor_status = Sensor_Status_Send;
-	Payload.Time_MilisH = (Elapsed_Time >> 8) & 0xFF;
-	Payload.Time_MilisL = Elapsed_Time & 0xFF;
+	Payload.Time_MilisH = 0;
+	Payload.Time_MilisL = 0;
 	Payload.Msg_Counter_H = (Message_Counter >> 8) & 0xFF;
 	Payload.Msg_Counter_L = Message_Counter & 0xFF;
-	Payload.Battery_Percentage = Calc_Batt_Perc();
+	Payload.Battery_Percentage = Battery_Actual_Val;
 
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
 	tx_res = nRF24_TransmitPacket(&Payload, Payload_Len);
 	nRF24_SetOperationalMode(nRF24_MODE_RX);
-	nRF24_CE_H();
+	//nRF24_CE_H();
+
+	//TIM11->CNT = 0;
 
 }
 
 void RF_Transmit_Trigger_MSG() {
 
 	BEACONMESSAGE_TypeDef Payload = { 0 };
+
+	nRF24_FlushRX();
+	nRF24_FlushTX();
+	//nRF24_ClearIRQFlags();
 
 	Payload.Beacon_Id = BeaconID;
 	Payload.Beacon_Mode = RACE_MODE;
@@ -221,7 +230,7 @@ void RF_Transmit_Trigger_MSG() {
 	Payload.Time_MilisL = Frozen_Timer_ms & 0xFF;
 	Payload.Msg_Counter_H = (Message_Counter >> 8) & 0xFF;
 	Payload.Msg_Counter_L = Message_Counter & 0xFF;
-	Payload.Battery_Percentage = Calc_Batt_Perc();
+	Payload.Battery_Percentage = Battery_Actual_Val;
 
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
 	tx_res = nRF24_TransmitPacket(&Payload, Payload_Len);
@@ -232,14 +241,17 @@ void RF_Transmit_Trigger_MSG() {
 
 void RF_Read_Settings_Msg(BEACONMODE_TypeDef Received_Mode) {
 
-	if (Received_Mode != Device_Current_Mode) {
+	GPIO_InitTypeDef GPIO_InitStruct_Change = {0};
+	extern uint8_t Car_Detected_Flag;
 
+	if (Received_Mode != Device_Current_Mode) {
 		switch (Received_Mode) {
 
 		case STANDBY_MODE:
 			Device_Current_Mode = STANDBY_MODE;
+			HAL_NVIC_EnableIRQ(EXTI0_IRQn);
 			Message_Counter = 0x00;
-			Interruption_Flag_WDT = 0x00;
+			Car_Detected_Flag = 0x00;
 			break;
 
 		case RACE_MODE:

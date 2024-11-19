@@ -1,38 +1,24 @@
 
 #include "main.h"
-#include "definitions.h"
-#include "shared_definitions.h"
+
+
 #include "usbd_cdc_if.h"
-#include "nrf24.h"
-#include "nextion_interface.h"
-#include "data_types.h"
-#include "fatfs.h"
 #include "aditional_functions_master.h"
 
 extern volatile BEACONMODE_TypeDef Device_Current_Mode;
-extern TIM_HandleTypeDef htim10;
+
 extern TIM_HandleTypeDef htim11;
-extern UART_HandleTypeDef huart1;
+
 
 extern volatile uint8_t WDTf_Beacon1, WDTf_Beacon2, WDTf_Beacon3, WDTf_Beacon4;
-extern volatile uint16_t Msg_Count_Prev_B1, Msg_Count_Prev_B2, Msg_Count_Prev_B3, Msg_Count_Prev_B4;
-extern volatile uint16_t Timestamp_B1_Lastmsg_ms, Timestamp_B2_Lastmsg_ms, Timestamp_B3_Lastmsg_ms, Timestamp_B4_Lastmsg_ms;
-extern volatile uint16_t Timestamp_B1_Lastmsg_s, Timestamp_B2_Lastmsg_s, Timestamp_B3_Lastmsg_s, Timestamp_B4_Lastmsg_s;
 
-extern FRESULT SD_Operation_Result;
-
-
-
-volatile uint16_t StopWatch_Counter_ms = 0x00, Meastime_ms = 0x00;
+volatile uint16_t StopWatch_Counter_ms = 0x00;
 volatile uint8_t StopWatch_Counter_secs = 0x00, Stopwatch_Counter_Mins = 0x00;
-volatile uint8_t Meastime_secs = 0x00;
-volatile uint32_t Start_Time_Full_ms = 0x00, End_Time_Full_ms = 0x00, Measured_Time_Full_ms = 0x00;
-volatile uint32_t Start_Time_Speed_Calc_ms = 0x00, End_Time_Speed_Calc_ms = 0x00, Measured_Time_Speed_Calc_ms = 0x00;
 volatile uint8_t Generic_Tim_Count_200ms = 0x00;
 volatile char Payload_Log[32];
 volatile uint8_t RX_Payload_Flag = 0x00, Dummy_Payload_Len = 0x00;
-volatile uint8_t Cancel_req = 0x00, Start_Req = 0x00, Step = 0x00, Sync = 0x00, Setup_Complete = 0x00, Finished_30m_Flag = 0x00, Finished_Speed_Flag = 0x00;
-volatile float Vehicle_Speed = 0.0;
+volatile uint8_t Cancel_req = 0x00, Start_Req = 0x00, Step = 0x00, Sync = 0x00, Setup_Complete = 0x00;
+
 
 
 volatile uint8_t Beacon_Blocker = 0x00; 	//This variable follows the expected beacon order, and only allows recordings to be done whe this given order is fullfilled.
@@ -41,14 +27,11 @@ uint8_t regread = 0x00;
 volatile uint8_t msg_len = 0x00;
 char msg[80];
 
-
-extern Rx_Buffer[20];
-
-
 extern void RF_Transmit_Config_MSG(BEACONMODE_TypeDef reqmode);
 extern void Beacon_Sync_Calcs(BEACONMESSAGE_TypeDef* Message);
 extern void WDT_Calcs_Updates();
 extern void NRF_24_Log_Init();
+
 
 
 
@@ -59,22 +42,17 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management o
 	if(htim->Instance == TIM11)			//Master Stopwatch and Sync timer interrupts
 		{
 
+		StopWatch_Counter_secs++;
+		HAL_GPIO_TogglePin(Led_Azul_GPIO_Port, Led_Azul_Pin);
+		/*
 		StopWatch_Counter_ms++;
-
-
-
 		if(StopWatch_Counter_ms >= 1000)
 		{
 			StopWatch_Counter_ms = 0x00;
 			StopWatch_Counter_secs++;
-//			if(StopWatch_Counter_secs >= 60)
-//			{
-//				StopWatch_Counter_secs = 0x00;
-//				Stopwatch_Counter_Mins++;
-
-			//}
 
 		}
+		*/
 		}
 
 
@@ -94,268 +72,44 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)						// Management o
 		nRF24_ClearIRQFlags();
 		Calc_Batt_Perc(0);
 
-
-
-
-		if(Generic_Tim_Count_200ms >= 5){
+		//Happens each 1s (200ms * 5)
+		if(Generic_Tim_Count_200ms >= 5)
+		{
 
 			Generic_Tim_Count_200ms = 0x00;
 			if(Device_Current_Mode == STANDBY_MODE || Device_Current_Mode == RACE_MODE) Regular_Nextion_Updates();
 
-
 			}
-
-
 		}
 	}
-
 
 
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){								//This functions was imported from "rf_driver.c". Put here for organization purposes
 
 	BEACONMESSAGE_TypeDef Message;
-	BEACONMODE_TypeDef Modo;
 	uint8_t Irq_Flags = 0xFF;
-	uint8_t pipe = 0xFF;
 	Nextion_Pages_TypeDef Nextion_Page = 0xff;
-
 	uint8_t Msg_Len = Payload_Len;
-	uint16_t Delta_msgs = 0xff, Message_Milis_Calc = 0x00;
-	uint16_t Timestamp_Corrected_s = 0x00, Timestamp_Corrected_ms = 0x00;
-
-
-
-	float dist = BEACON_DISTANCE;
 
 	switch(GPIO_Pin){
 
 	case NRF_IRQ_Pin:
 
 		Irq_Flags = nRF24_GetIRQFlags();
-
-
 		if((Irq_Flags & nRF24_FLAG_RX_DR) == nRF24_FLAG_RX_DR){
-			if(Device_Current_Mode == STANDBY_MODE || Device_Current_Mode == RACE_MODE){
-				pipe = nRF24_ReadPayload(&Message, &Msg_Len);
-
-				if(Message.Beacon_Mode != Device_Current_Mode) RF_Transmit_Config_MSG(Device_Current_Mode);
-				Nextion_Page = Get_Nextion_Pages();
-
-				if(Nextion_Page == STANDBY_PAGE || Nextion_Page == RACE_PAGE){
-
-					switch(Device_Current_Mode){
-
-						case STANDBY_MODE:
-
-
-							if(Message.Beacon_Mode != STANDBY_MODE) Update_Sensor_Status_Stdby(Message.Beacon_Id, 0, Message.Sensor_status, Message.Battery_Percentage);
-							else Update_Sensor_Status_Stdby(Message.Beacon_Id, 1, Message.Sensor_status, Message.Battery_Percentage);
-							Beacon_Sync_Calcs(&Message);
-
-							break;
-
-						case RACE_MODE:
-
-							if(Message.Beacon_Mode != RACE_MODE) {
-								Update_Sensor_Status_Run(Message.Beacon_Id, 0); //At Run Page, indicates that the sensor is not on the same status as the master (STANDBY instead of RACE)
-								RF_Transmit_Config_MSG(RACE_MODE); // Sends a configuration message in order to sync the modules
-								break;
-							}
-
-							else if(Message.Beacon_Mode == RACE_MODE) {
-
-								if(Message.Sensor_status == NON_INTERRUPTED){
-									 Beacon_Sync_Calcs(&Message);
-									 Update_Sensor_Status_Run(Message.Beacon_Id, 1); //At Run Page, indicates that the sensor is on the same status as the master (RACE)
-								}
-								else if(Message.Sensor_status == INTERRUPTED){
-
-									switch (Message.Beacon_Id){
-
-									case BEACON1:
-
-									if (Beacon_Blocker == 0x00){
-										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B1;
-										Message_Milis_Calc = ((Message.Time_MilisH << 8) + Message.Time_MilisL);
-
-										Start_Time_Full_ms = (Timestamp_B1_Lastmsg_s*1000) + Timestamp_B1_Lastmsg_ms;
-										Start_Time_Full_ms += (Delta_msgs*1000) + Message_Milis_Calc;
-										Display_30m_Started();
-
-										Beacon_Blocker = 0x01;
-
-										}
-										break;
-
-									case BEACON2:
-
-									if (Beacon_Blocker == 0x01){
-										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B2;
-										Message_Milis_Calc = (Message.Time_MilisH << 8) + Message.Time_MilisL;
-
-										End_Time_Full_ms = (Timestamp_B2_Lastmsg_s*1000) + Timestamp_B2_Lastmsg_ms;
-										End_Time_Full_ms += (Delta_msgs*1000) + Message_Milis_Calc;
-
-										Measured_Time_Full_ms = End_Time_Full_ms - Start_Time_Full_ms;
-
-										Meastime_secs = ceil(Measured_Time_Full_ms/1000);
-										Meastime_ms = Measured_Time_Full_ms%1000;
-										Display_30m_time(Meastime_ms, Meastime_secs);
-
-
-										Beacon_Blocker = 0x02;
-										Finished_30m_Flag = 0x01;
-										}
-										break;
-
-									case BEACON3:
-
-									if (Beacon_Blocker == 0x02){
-										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B3;
-										Message_Milis_Calc = ((Message.Time_MilisH << 8) + Message.Time_MilisL);
-
-										Start_Time_Speed_Calc_ms = (Timestamp_B3_Lastmsg_s*1000) + Timestamp_B3_Lastmsg_ms;
-										Start_Time_Speed_Calc_ms += (Delta_msgs*1000) + Message_Milis_Calc;
-
-										Beacon_Blocker = 0x03;
-										}
-										break;
-
-									case BEACON4:
-
-									if (Beacon_Blocker == 0x03){
-										uint8_t Interger_Part = 0x00;
-										uint16_t Decimal_Part = 0x00;
-
-										Delta_msgs = ((Message.Msg_Counter_H<<8)+ Message.Msg_Counter_L) - Msg_Count_Prev_B4;
-										Message_Milis_Calc = (Message.Time_MilisH << 8) + Message.Time_MilisL;
-
-										End_Time_Speed_Calc_ms = (Timestamp_B4_Lastmsg_s*1000) + Timestamp_B4_Lastmsg_ms;
-										End_Time_Speed_Calc_ms += (Delta_msgs*1000) + Message_Milis_Calc;
-
-										Measured_Time_Speed_Calc_ms = End_Time_Speed_Calc_ms - Start_Time_Speed_Calc_ms;
-
-										Vehicle_Speed = Delta_msgs + (float)(Measured_Time_Speed_Calc_ms/1000.0);
-										Vehicle_Speed = dist/Vehicle_Speed;
-										Vehicle_Speed = (Vehicle_Speed*3.6);
-
-										Display_Speed(Vehicle_Speed);
-
-										Finished_Speed_Flag = 0x01;
-
-										Beacon_Blocker = 0x04;
-
-										}
-										break;
-
-									default:
-										break;
-									}
-								}
-							}
-
-						default:
-							break;
-					}
-				}
+			On_Valid_NRF24_Msg();
 		}
-			else if (Device_Current_Mode == OTA_REPORT_MODE){
-				Nextion_Page = Get_Nextion_Pages();
-				if(Nextion_Page == OTA_REPORT_PAGE){
-					pipe = nRF24_ReadPayload(Payload_Log, &Dummy_Payload_Len);
-					RX_Payload_Flag = 0x01;
-				}
-			}
-
-			}
 
 		nRF24_ClearIRQFlags();
 		nRF24_FlushRX();
-}
-}
-
-
-void Regular_Nextion_Updates(){
-
-
-	Nextion_Pages_TypeDef Nextion_Page = 0xff, Request_Page = 0xff;
-	uint8_t Battery_Status_Perc = 0x00, Request_To_Save = 0x00;
-	uint16_t Batt_Voltage_mv = 0x00;
-    Data_FS SD_Data;
-
-
-	Nextion_Page = Get_Nextion_Pages();
-
-	switch(Nextion_Page){
-
-	case STANDBY_PAGE:
-		Check_Apply_OPmode_Change();
-		WDT_Calcs_Updates(Nextion_Page);
-
-		Nextion_Update_SD_Status(SD_Operation_Result);
-
-		Battery_Status_Perc = Calc_Batt_Perc(0);
-		Batt_Voltage_mv = Calc_Batt_Perc(1);
-		Nextion_Update_Battery(Battery_Status_Perc, Batt_Voltage_mv);
-
-
-		break;
-
-	case RACE_PAGE:
-		Check_Apply_OPmode_Change();
-		WDT_Calcs_Updates(Nextion_Page);
-		Request_To_Save = Nextion_Get_Save_File_Req();
-		if((Finished_30m_Flag == 0x01) && (Request_To_Save == 1) && (Finished_Speed_Flag == 0)) Store_Data_SD_30m(Measured_Time_Full_ms);
-		if((Finished_30m_Flag == 0x01) && (Request_To_Save == 1) && (Finished_Speed_Flag == 1)) Store_Data_SD_All(Measured_Time_Full_ms, Vehicle_Speed);
-
-		break;
-
-
-
-	case LOCAL_REPORT_PAGE:
-
-		memset(&SD_Data, 0x00, sizeof(SD_Data));
-		SD_Data = Read_SD_Data();
-		if(SD_Data.Size > 0)Nextion_Display_Mem_Data(SD_Data);
-
-		break;
-
-	case OTA_REPORT_PAGE:
-
-		Device_Current_Mode = OTA_REPORT_MODE;
-		NRF_24_Log_Init();
-		SD_Data = Read_SD_Data();
-		OTA_Log_Routine(SD_Data);
-		NRF_24_Master_Init();
-		Nextion_Init();
-
-
-		break;
-
-	case MEM_ERASE:
-
-		if (Nextion_Get_Mem_Erase_Status() == ERR_REQUESTED) {
-			Erase_SD_Card();
-			Nextion_Retunr_From_Mem_Erase();
-		}
-
-		break;
-
-	default:
-		break;
-	}
-
 
 }
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart){
 
 
-
-
-
-
-
-
-
-
+	return 0;
+}
 
