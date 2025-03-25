@@ -19,6 +19,7 @@ void Erase_SD_Card();
 void OTA_Log_Routine(Data_FS Data);
 void Store_Data_SD_30m(uint16_t Time_ms);
 void Store_Data_SD_All(uint16_t Time_ms, float Speed);
+void Reset_Counters_And_Values();
 
 void Regular_Nextion_Updates();
 void Check_Apply_OPmode_Change();

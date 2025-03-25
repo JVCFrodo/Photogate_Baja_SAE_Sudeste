@@ -11,6 +11,9 @@
 		<item key="caseSensitive" value="false"/>
 		<item key="searchFlags" value="227191"/>
 		<list key="previousPatterns">
+			<item value="StopWatch_Counter_NoZero_1ms"/>
+			<item value="Start_Time_Full_ms"/>
+			<item value="Finished_Speed_Flag"/>
 			<item value="RF_Transmit_Alive_MSG"/>
 			<item value="htim11"/>
 			<item value="TIM11"/>

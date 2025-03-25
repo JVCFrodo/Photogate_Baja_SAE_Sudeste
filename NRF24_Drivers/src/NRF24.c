@@ -160,14 +160,22 @@ void nRF24_SetPowerMode(uint8_t mode) {
 void nRF24_SetOperationalMode(uint8_t mode) {
 	uint8_t reg;
 
+	nRF24_SetPowerMode(nRF24_PWR_UP);
+
 	// Configure PRIM_RX bit of the CONFIG register
 	reg  = nRF24_ReadReg(nRF24_REG_CONFIG);
-	reg &= ~nRF24_CONFIG_PRIM_RX;
-	reg |= (mode & nRF24_CONFIG_PRIM_RX);
+    if (mode == nRF24_MODE_TX)
+	{
+        reg &= ~(1 << 0);
+    }
+    else if (mode == nRF24_MODE_RX)
+    {
+        reg |= (1 << 0);
+    }
 	nRF24_WriteReg(nRF24_REG_CONFIG, reg);
-	if(mode == nRF24_MODE_TX) nRF24_CE_L();
-	else if (mode == nRF24_MODE_RX) nRF24_CE_H();
+
 }
+
 
 // Set transceiver DynamicPayloadLength feature for all the pipes
 // input:

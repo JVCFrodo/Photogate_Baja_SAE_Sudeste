@@ -91,23 +91,23 @@ void Erase_SD_Card() {
 
 	FRESULT SD_Operation_Result = FR_DISK_ERR;
 
-	HAL_TIM_Base_Stop_IT(&htim11);
-	HAL_TIM_Base_Stop_IT(&htim10);
+	//HAL_TIM_Base_Stop_IT(&htim11);
+	//HAL_TIM_Base_Stop_IT(&htim10);
 
-	HAL_UART_DMAStop(&huart1);
+	//HAL_UART_DMAStop(&huart1);
 
-	HAL_ADC_Stop_DMA(&hadc1);
-	HAL_NVIC_DisableIRQ(EXTI2_IRQn);
+	//HAL_ADC_Stop_DMA(&hadc1);
+	//HAL_NVIC_DisableIRQ(EXTI2_IRQn);
 
 	SD_Operation_Result = f_open(&fil, "ResultadosAVF.txt",
 			FA_WRITE | FA_READ | FA_CREATE_ALWAYS);
 	f_close(&fil);
 
-	HAL_UART_Receive_DMA(&huart1, Rx_Buffer, 5);
-	HAL_ADC_Start_DMA(&hadc1, &Analog_read, 1);
+	//HAL_UART_Receive_DMA(&huart1, Rx_Buffer, 5);
+	//HAL_ADC_Start_DMA(&hadc1, &Analog_read, 1);
 
-	HAL_TIM_Base_Start_IT(&htim10);
-	HAL_NVIC_EnableIRQ(EXTI2_IRQn);
+	//HAL_TIM_Base_Start_IT(&htim10);
+	//HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 }
 
 Data_FS Read_SD_Data() {
@@ -354,9 +354,12 @@ void Store_Data_SD_30m(uint16_t Time_ms) {
 	SD_Operation_Result1 = f_write(&fil, Write_Payload, len, &DummWC);
 	SD_Operation_Result1 = f_close(&fil);
 
+	Finished_30m_Flag = 0x00;
+	Device_Current_Mode = STANDBY_MODE;
+
 	Nextion_SD_Write_Confirmation_Page();
 
-	Finished_30m_Flag = 0x00;
+
 
 }
 
@@ -388,9 +391,11 @@ void Store_Data_SD_All(uint16_t Time_ms, float Speed) {
 	SD_Operation_Result1 = f_write(&fil, Write_Payload, len, &DummWC);
 	SD_Operation_Result1 = f_close(&fil);
 
-	Nextion_SD_Write_Confirmation_Page();
-
+	Device_Current_Mode = STANDBY_MODE;
 	Finished_Speed_Flag = 0x00;
+	Finished_30m_Flag = 0x00;
+
+	Nextion_SD_Write_Confirmation_Page();
 
 }
 
@@ -479,14 +484,11 @@ void Race_Mode_StateMachine_Update(BEACONMESSAGE_TypeDef *PMessage){
 				Vehicle_Speed = dist/Vehicle_Speed;
 				Vehicle_Speed = (Vehicle_Speed*3.6);
 
-				msg_len_tmp = sprintf(Send_msg_tmp, "t0.txt=%c%d ms%c%c%c%c",'"', Measured_Time_Speed_Calc_ms,'"',Nextion_EndChar,Nextion_EndChar,Nextion_EndChar);
-				HAL_UART_Transmit(&huart1, Send_msg_tmp, msg_len_tmp, 10);
 
 				Display_Speed(Vehicle_Speed);
-
 				Finished_Speed_Flag = 0x01;
-
 				Beacon_Blocker = 0x04;
+
 				}
 		break;
 
@@ -495,7 +497,34 @@ void Race_Mode_StateMachine_Update(BEACONMESSAGE_TypeDef *PMessage){
 	}
 }
 
+void Reset_Counters_And_Values(){
 
+	extern uint16_t Timestamp_B1_Lastmsg_s, Timestamp_B1_Lastmsg_ms, Timestamp_B2_Lastmsg_s, Timestamp_B2_Lastmsg_ms,
+					Timestamp_B3_Lastmsg_s, Timestamp_B3_Lastmsg_ms, Timestamp_B4_Lastmsg_s, Timestamp_B4_Lastmsg_ms;
+
+    extern volatile uint16_t Msg_Count_Prev_B1, Msg_Count_Prev_B2, Msg_Count_Prev_B3, Msg_Count_Prev_B4;
+	extern uint8_t Beacon_Blocker;
+
+	Timestamp_B1_Lastmsg_ms = Timestamp_B1_Lastmsg_s = Timestamp_B2_Lastmsg_ms = Timestamp_B2_Lastmsg_s = Timestamp_B3_Lastmsg_ms = Timestamp_B3_Lastmsg_s = Timestamp_B4_Lastmsg_ms = Timestamp_B4_Lastmsg_s = 0;
+	Msg_Count_Prev_B1 = Msg_Count_Prev_B2 = Msg_Count_Prev_B3 = Msg_Count_Prev_B4 = 0x00;
+
+	Start_Time_Full_ms = 0x00;
+	End_Time_Full_ms = 0x00;
+	Measured_Time_Full_ms = 0x00;
+
+	Meastime_ms = 0x00;
+	Start_Time_Speed_Calc_ms = 0x00;
+	End_Time_Speed_Calc_ms = 0x00;
+	Measured_Time_Speed_Calc_ms = 0x00;
+	Delta_msgs = 0xff;
+	Message_Milis_Calc = 0x00;
+
+	Meastime_secs = 0x00;
+	Finished_30m_Flag = 0x00;
+	Finished_Speed_Flag = 0x00;
+	Vehicle_Speed = 0.0;
+
+}
 
 
 
@@ -586,8 +615,6 @@ void Regular_Nextion_Updates(){
 		Battery_Status_Perc = Calc_Batt_Perc(0);
 		//Batt_Voltage_mv = Calc_Batt_Perc(1);
 		Nextion_Update_Battery(Battery_Status_Perc, 0);
-
-
 		break;
 
 	case RACE_PAGE:

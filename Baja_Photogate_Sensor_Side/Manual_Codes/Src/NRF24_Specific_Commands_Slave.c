@@ -68,6 +68,8 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	//   TX_DS  - means the packet has been transmitted
 	//   MAX_RT - means the maximum number of TX retransmits happened
 	// note: this solution is far from perfect, better to use IRQ instead of polling the status
+
+
 	do {
 		status = nRF24_GetStatus();
 		if (status & (nRF24_FLAG_TX_DS | nRF24_FLAG_MAX_RT )) {
@@ -75,8 +77,9 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 		}
 	} while (wait--);
 
+
 	// Deassert the CE pin (Standby-II --> Standby-I)
-	nRF24_CE_L();
+	//nRF24_CE_L();
 
 	if (!wait) {
 		// Timeout
@@ -101,6 +104,7 @@ nRF24_TXResult nRF24_TransmitPacket(uint8_t *pBuf, uint8_t length) {
 	nRF24_FlushTX();
 
 	return nRF24_TX_ERROR;
+
 }
 
 void NRF_24_Slave_Init() {
@@ -115,7 +119,10 @@ void NRF_24_Slave_Init() {
 	static const uint8_t nRF24_ADDR3[] = Sensor_4_Pipe;
 
 	// Set RF channel
-	nRF24_SetRFChannel(100);
+
+	//nRF24_SetRFChannel(100);
+	nRF24_SetRFChannel(106);
+
 
 	// Set data rate
 	nRF24_SetDataRate(nRF24_DR_250kbps);
@@ -160,7 +167,9 @@ void NRF_24_Slave_Init() {
 	nRF24_SetRXPipe(nRF24_PIPE0, nRF24_AA_ON, Payload_Len);
 
 	// Set TX power (maximum)
-	nRF24_SetTXPower(nRF24_TXPWR_18dBm);
+	nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+	//nRF24_SetTXPower(nRF24_TXPWR_0dBm);
+
 
 	// Set automatic retransmission parameters
 	nRF24_SetAutoRetr(nRF24_ARD_2500us, 10);
@@ -206,12 +215,12 @@ void RF_Transmit_Alive_MSG() {
 	Payload.Msg_Counter_L = Message_Counter & 0xFF;
 	Payload.Battery_Percentage = Battery_Actual_Val;
 
+	nRF24_CE_L();
+	nRF24_SetPowerMode(nRF24_PWR_UP);
 	nRF24_SetOperationalMode(nRF24_MODE_TX);
 	tx_res = nRF24_TransmitPacket(&Payload, Payload_Len);
 	nRF24_SetOperationalMode(nRF24_MODE_RX);
-	//nRF24_CE_H();
-
-	//TIM11->CNT = 0;
+	nRF24_CE_H();
 
 }
 

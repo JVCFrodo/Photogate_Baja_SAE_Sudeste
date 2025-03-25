@@ -121,12 +121,9 @@ void WDT_Calcs_Updates(Nextion_Pages_TypeDef Page){
 void Check_Apply_OPmode_Change()
 {
 
-
-	Device_Previous_Mode = Device_Current_Mode;
 	Device_Current_Mode = Get_Device_Mode();
 
 	if(Device_Previous_Mode != Device_Current_Mode){
-
 		switch(Device_Current_Mode){
 
 			case STANDBY_MODE:
@@ -135,6 +132,7 @@ void Check_Apply_OPmode_Change()
 				StopWatch_Counter_secs = 0x00;
 				Stopwatch_Counter_Mins = 0x00;
 				Beacon_Blocker = 0x00;
+				Reset_Counters_And_Values();
 			break;
 
 			case RACE_MODE:
@@ -147,4 +145,6 @@ void Check_Apply_OPmode_Change()
 			break;
 		}
 	}
+	Device_Previous_Mode = Device_Current_Mode;
+
 }

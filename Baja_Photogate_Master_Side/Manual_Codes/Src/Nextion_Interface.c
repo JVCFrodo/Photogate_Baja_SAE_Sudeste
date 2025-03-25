@@ -329,15 +329,11 @@ void Nextion_Update_Battery(uint8_t Bat_Status_perc, uint16_t Batt_Voltage_mV){
 
 	Nextion_Pages_TypeDef Current_Page = RACE_PAGE;
 
-
-
 	Current_Page = Get_Nextion_Pages();
 	if(Current_Page == STANDBY_PAGE){
 		Msg_len = sprintf(Send_msg, "t4.txt=%c%d%c%c%c%c%c",'"', Bat_Status_perc,'%','"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 		HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 	}
-
-
 }
 
 Mem_Erase_Status Nextion_Get_Mem_Erase_Status(){
@@ -372,15 +368,15 @@ void Nextion_Update_SD_Status(uint8_t Status){
 
 void Nextion_Retunr_From_Mem_Erase(){
 
-	Wait_Nextion_Resp_us(300000);
+	Wait_Nextion_Resp_us(150000);
 	Msg_len = sprintf(Send_msg, "t0.pco=16296%c%c%c",Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 	Msg_len = sprintf(Send_msg, "t0.txt=%cMemoria apagada!!%c%c%c%c",'"','"', Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 	Msg_len = sprintf(Send_msg, "p1.pic=4%c%c%c",Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
-	Wait_Nextion_Resp_us(300000);
-	Msg_len = sprintf(Send_msg, "dp=2%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	Wait_Nextion_Resp_us(200000);
+	Msg_len = sprintf(Send_msg, "page 2%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
 	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 
 

@@ -109,7 +109,7 @@ void NRF_24_Master_Init(){
 
 
 	    // Set RF channel
-	    nRF24_SetRFChannel(100);
+	    nRF24_SetRFChannel(106);
 
 	    // Set data rate
 	    nRF24_SetDataRate(nRF24_DR_250kbps);

@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
-		<item key="selection" value="Display"/>
+		<item key="selection" value="controlreg"/>
 		<item key="wrap" value="true"/>
 		<item key="casesensitive" value="false"/>
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
 		<list key="findhistory">
+			<item value="controlreg"/>
+			<item value="t4"/>
+			<item value="TIM2"/>
+			<item value="30m"/>
+			<item value="Finished_Speed_Flag"/>
+			<item value="Delta"/>
+			<item value="End_Time_Speed_Calc_ms"/>
+			<item value="Meastim"/>
 			<item value="Display"/>
 			<item value="TIM9"/>
 			<item value="htim9"/>
@@ -15,14 +23,6 @@
 			<item value="Meas_Time_s"/>
 			<item value="Meas_Time_ms"/>
 			<item value="B2"/>
-			<item value="B1"/>
-			<item value="Meastime_us"/>
-			<item value="NEXTION_INTERFACE"/>
-			<item value="GLOBALS"/>
-			<item value="*4B"/>
-			<item value="4B"/>
-			<item value="Signal"/>
-			<item value="Plus"/>
 		</list>
 		<list key="replacehistory">
 			<item value="TIM11"/>
@@ -38,7 +38,7 @@
 		</list>
 	</section>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
-		<item key="DIALOG_X_ORIGIN" value="1439"/>
+		<item key="DIALOG_X_ORIGIN" value="738"/>
 		<item key="DIALOG_Y_ORIGIN" value="318"/>
 		<item key="DIALOG_WIDTH" value="322"/>
 		<item key="DIALOG_HEIGHT" value="391"/>
