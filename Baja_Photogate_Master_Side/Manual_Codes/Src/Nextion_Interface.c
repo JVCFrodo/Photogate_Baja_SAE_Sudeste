@@ -649,7 +649,12 @@ uint8_t Nextion_Get_Save_File_Req(){
 	return Rx_Val;
 }
 
+void Nextion_Reset_SaveToRequest(void){
+
+	Msg_len = sprintf(Send_msg, "globals.Save_File.val=0%c%c%c", Nextion_EndChar, Nextion_EndChar, Nextion_EndChar);
+	HAL_UART_Transmit(&huart1, Send_msg, Msg_len, 10);
 
 
+}
 
 

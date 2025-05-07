@@ -12,21 +12,22 @@
 
 
 void Update_Sensor_Status_Stdby(uint8_t sensor, uint8_t Sync, uint8_t Beam, uint8_t Signal);
-void Nextion_Init();
+void Nextion_Init(void);
 void Update_Sensor_Status_Run(uint8_t Sensor, uint8_t Sync);
 void Display_30m_time(uint16_t milis, uint8_t secs);
 void Wait_Nextion_Resp_us(uint32_t tim_to_wait_us);
 void Nextion_Update_Battery(uint8_t Bat_Status_perc, uint16_t Batt_Voltage_mV);
-void Clear_UART_RxTx();
-void Nextion_Debug_Stopwatch_Send();
-void Nextion_SD_Write_Confirmation_Page();
+void Clear_UART_RxTx(void);
+void Nextion_Debug_Stopwatch_Send(void);
+void Nextion_SD_Write_Confirmation_Page(void);
 void Display_Speed(float Speed);
-void Display_30m_Started();
+void Display_30m_Started(void);
 void Nextion_Update_SD_Status(uint8_t Status);
 void Nextion_Update_OTA_Progress(uint8_t perc);
 void Nextion_Display_Mem_Data(Data_FS Data);
-void Nextion_Retunr_From_Mem_Erase();
+void Nextion_Retunr_From_Mem_Erase(void);
 void Nextion_Update_SD_Status(uint8_t Status);
+void Nextion_Reset_SaveToRequest(void);
 
 uint8_t Nextion_Get_Start_Download_Request();
 uint8_t Nextion_Get_Save_File_Req();

@@ -424,6 +424,7 @@ void Race_Mode_StateMachine_Update(BEACONMESSAGE_TypeDef *PMessage){
 				Start_Time_Full_ms = (Timestamp_B1_Lastmsg_s*1000) + Timestamp_B1_Lastmsg_ms;
 				Start_Time_Full_ms += (Delta_msgs*1000) + Message_Milis_Calc;
 				Display_30m_Started();
+				Nextion_Reset_SaveToRequest();
 
 				Beacon_Blocker = 0x01;
 
